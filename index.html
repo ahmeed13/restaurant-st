@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>نظام إدارة مخازن المطعم - النسخة الشاملة</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-main: #0F1923; --bg-card: #162030; --bg-sidebar: #0B1520;
+      --accent: #E8A020; --accent-dim: #C4851A; --accent-glow: rgba(232,160,32,.18);
+      --danger: #E05050; --danger-dim: rgba(224,80,80,.15);
+      --success: #38C18A; --success-dim: rgba(56,193,138,.15);
+      --info: #4CA8E8; --info-dim: rgba(76,168,232,.15);
+      --text-primary: #EDF2F7; --text-secondary: #8A9BB0;
+      --border: rgba(255,255,255,.07); --radius: 10px; --radius-lg: 16px;
+      --font: 'Cairo', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: var(--bg-main); color: var(--text-primary); display: flex; min-height: 100vh; }
+    
+    /* شاشة التحميل */
+    #loading-overlay { position: fixed; inset: 0; background: rgba(15, 25, 35, 0.9); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; }
+    .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* الشريط الجانبي */
+    #sidebar { width: 240px; background: var(--bg-sidebar); border-left: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; right: 0; height: 100vh; z-index: 100; }
+    .sidebar-logo { padding: 24px 20px; border-bottom: 1px solid var(--border); text-align: center; }
+    .sidebar-logo h1 { font-size: 16px; font-weight: 700; color: var(--accent); }
+    nav { flex: 1; padding: 16px 0; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; cursor: pointer; color: var(--text-secondary); font-size: 14px; font-weight: 600; border-right: 3px solid transparent; transition: 0.2s; }
+    .nav-item:hover, .nav-item.active { color: var(--text-primary); background: var(--accent-glow); border-right-color: var(--accent); }
+    
+    /* المحتوى الرئيسي */
+    #main { margin-right: 240px; flex: 1; padding: 0; }
+    .page-header { padding: 20px 30px; border-bottom: 1px solid var(--border); background: var(--bg-main); position: sticky; top: 0; z-index: 50; display: flex; justify-content: space-between; align-items: center; }
+    .content-area { padding: 30px; display: none; }
+    .content-area.active { display: block; }
+
+    /* البطاقات والإحصاءات */
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px; }
+    .card-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; text-align: center; border-bottom: 3px solid var(--accent); }
+    .stat-card.danger { border-bottom-color: var(--danger); }
+    .stat-card.success { border-bottom-color: var(--success); }
+    .stat-value { font-size: 28px; font-weight: 900; margin-bottom: 5px; }
+    .stat-label { font-size: 13px; color: var(--text-secondary); }
+
+    /* الجداول والشارات */
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    th { background: rgba(255,255,255,.04); color: var(--text-secondary); padding: 12px; text-align: right; font-size: 12px; }
+    td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:hover { background: rgba(255,255,255,.02); }
+    .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge.danger { background: var(--danger-dim); color: var(--danger); }
+    .badge.success { background: var(--success-dim); color: var(--success); }
+    .badge.warning { background: var(--accent-glow); color: var(--accent); }
+    
+    /* شريط مستوى المخزون (الحد الحرج) */
+    .stock-bar { width: 80px; height: 6px; background: rgba(255,255,255,.1); border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 8px; }
+    .stock-bar-fill { height: 100%; border-radius: 3px; display: block; }
+
+    /* النماذج والأزرار */
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 700; }
+    .form-control { width: 100%; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-primary); padding: 10px; font-family: var(--font); outline: none; }
+    .form-control:focus { border-color: var(--accent); }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .btn { padding: 10px 20px; border-radius: var(--radius); border: none; cursor: pointer; font-family: var(--font); font-weight: 700; font-size: 13px; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-primary { background: var(--accent); color: #0F1923; }
+    .btn-success { background: var(--success-dim); color: var(--success); border: 1px solid var(--success); }
+    .btn-danger { background: var(--danger-dim); color: var(--danger); border: 1px solid var(--danger); }
+    .btn-info { background: var(--info-dim); color: var(--info); border: 1px solid var(--info); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+    /* النوافذ المنبثقة */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.2s; }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); width: 100%; max-width: 500px; padding: 25px; transform: scale(0.95); transition: 0.2s; }
+    .modal-overlay.open .modal { transform: scale(1); }
+    .modal-header { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 18px; font-weight: 700; }
+    .modal-close { background: none; border: none; color: var(--danger); font-size: 20px; cursor: pointer; }
+    
+    /* التنبيهات */
+    #toast-container { position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+    .toast { background: var(--bg-card); border: 1px solid var(--border); padding: 12px 20px; border-radius: var(--radius); font-size: 13px; font-weight: 700; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+  </style>
+</head>
+<body>
+
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <p style="font-weight: 600; color: var(--accent);">جاري المزامنة مع السحابة...</p>
+  </div>
+
+  <aside id="sidebar">
+    <div class="sidebar-logo">
+      <h1>📦 إدارة المخازن</h1>
+    </div>
+    <nav>
+      <div class="nav-item active" onclick="switchPage('page-dashboard', this)">📊 لوحة التحكم (الجرد)</div>
+      <div class="nav-item" onclick="switchPage('page-operations', this)">⚙️ العمليات والمناقلة</div>
+      <div class="nav-item" onclick="switchPage('page-expiries', this)">⏳ تتبع الصلاحيات</div>
+      <div class="nav-item" onclick="switchPage('page-reports', this)">📑 التقارير والسجل</div>
+      <div class="nav-item" onclick="switchPage('page-settings', this)">🔧 الإعدادات الشاملة</div>
+    </nav>
+  </aside>
+
+  <main id="main">
+    <div class="page-header">
+      <h2 id="page-title">لوحة التحكم</h2>
+    </div>
+
+    <section id="page-dashboard" class="content-area active">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-items" style="color:var(--info);">0</div>
+          <div class="stat-label">إجمالي المواد</div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-value" id="stat-ok" style="color:var(--success);">0</div>
+          <div class="stat-label">مواد وضعها ممتاز</div>
+        </div>
+        <div class="stat-card danger">
+          <div class="stat-value" id="stat-critical" style="color:var(--danger);">0</div>
+          <div class="stat-label">مواد تحت الحد الحرج 🚨</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">الجرد الشامل والحدود الحرجة</div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>المادة</th>
+                <th>التصنيف</th>
+                <th id="th-w1">المخزن الأول</th>
+                <th id="th-w2">المخزن الثاني</th>
+                <th>الإجمالي</th>
+                <th>مؤشر المخزون</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-operations" class="content-area">
+      <div class="card" style="display: flex; gap: 15px; flex-wrap: wrap;">
+        <button class="btn btn-success" onclick="openModal('modal-op', 'inbound')">➕ شراء / إضافة</button>
+        <button class="btn btn-danger" onclick="openModal('modal-op', 'outbound')">➖ صرف / بيع</button>
+        <button class="btn btn-info" onclick="openModal('modal-transfer')">🔄 مناقلة بين المخازن</button>
+        <button class="btn" style="background:var(--accent-glow); color:var(--accent);" onclick="openModal('modal-op', 'spoilage')">🗑️ تسجيل تالف</button>
+      </div>
+    </section>
+
+    <section id="page-expiries" class="content-area">
+      <div class="card">
+        <div class="card-title">المواد ذات تواريخ الصلاحية (مرتبة من الأقرب للانتهاء)</div>
+        <table>
+          <thead>
+            <tr>
+              <th>المادة</th>
+              <th>الكمية المتوفرة</th>
+              <th>المخزن</th>
+              <th>تاريخ الصلاحية</th>
+              <th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody id="expiries-table"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="page-reports" class="content-area">
+      <div class="card">
+        <div class="card-title">سجل الحركات المتقدم</div>
+        <table>
+          <thead>
+            <tr>
+              <th>التاريخ والوقت</th>
+              <th>العملية</th>
+              <th>المادة</th>
+              <th>الكمية</th>
+              <th>المخزن</th>
+              <th>ملاحظات</th>
+            </tr>
+          </thead>
+          <tbody id="log-table"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="page-settings" class="content-area">
+      <div class="form-grid">
+        <div class="card">
+          <div class="card-title">🏭 أسماء المخازن</div>
+          <div class="form-group"><label>المخزن الأول</label><input type="text" id="set-w1" class="form-control" /></div>
+          <div class="form-group"><label>المخزن الثاني</label><input type="text" id="set-w2" class="form-control" /></div>
+          <button class="btn btn-primary" onclick="saveWarehouses()">💾 حفظ المخازن</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🏷️ إدارة التصنيفات</div>
+          <div class="form-group" style="display: flex; gap: 10px;">
+            <input type="text" id="new-category-name" class="form-control" placeholder="اسم التصنيف الجديد" />
+            <button class="btn btn-success" onclick="addCategory()">إضافة</button>
+          </div>
+          <table style="margin-top: 15px;">
+            <thead><tr><th>التصنيف</th><th>إجراء</th></tr></thead>
+            <tbody id="settings-categories-table"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>🥩 إضافة وإدارة المواد</span></div>
+        <div class="form-grid">
+          <div class="form-group"><label>اسم المادة</label><input type="text" id="new-item-name" class="form-control" /></div>
+          <div class="form-group"><label>الحد الحرج</label><input type="number" id="new-item-critical" class="form-control" /></div>
+          <div class="form-group"><label>التصنيف</label><select id="new-item-cat" class="form-control"></select></div>
+          <div class="form-group"><label>الوحدة</label><select id="new-item-unit" class="form-control"></select></div>
+        </div>
+        <button class="btn btn-primary" onclick="addNewItem()">+ إضافة المادة</button>
+        <table style="margin-top: 20px;">
+          <thead><tr><th>المادة</th><th>الحد الحرج</th><th>إجراء</th></tr></thead>
+          <tbody id="settings-items-table"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-overlay" id="modal-op">
+    <div class="modal">
+      <div class="modal-header">
+        <span id="op-title">تنفيذ عملية</span>
+        <button class="modal-close" onclick="closeModal('modal-op')">✕</button>
+      </div>
+      <input type="hidden" id="op-type" />
+      <div class="form-group"><label>المادة</label><select id="op-item" class="form-control"></select></div>
+      <div class="form-grid">
+        <div class="form-group"><label>الكمية</label><input type="number" id="op-qty" class="form-control" min="0.1" step="0.1" /></div>
+        <div class="form-group"><label>المخزن</label><select id="op-wh" class="form-control"></select></div>
+      </div>
+      
+      <div class="form-group" id="op-expiry-group" style="display: none;">
+        <label>تاريخ الصلاحية (اختياري)</label>
+        <input type="date" id="op-expiry" class="form-control" />
+      </div>
+
+      <div class="form-group"><label>ملاحظات</label><input type="text" id="op-note" class="form-control" /></div>
+      <button class="btn btn-primary" style="width:100%" onclick="executeOperation()">تأكيد العملية</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-transfer">
+    <div class="modal">
+      <div class="modal-header">
+        <span>🔄 مناقلة بين المخازن</span>
+        <button class="modal-close" onclick="closeModal('modal-transfer')">✕</button>
+      </div>
+      <div class="form-group"><label>المادة المراد نقلها</label><select id="tr-item" class="form-control"></select></div>
+      <div class="form-group"><label>الكمية</label><input type="number" id="tr-qty" class="form-control" min="0.1" step="0.1" /></div>
+      <div class="form-grid">
+        <div class="form-group"><label>من مخزن</label><select id="tr-from" class="form-control"></select></div>
+        <div class="form-group"><label>إلى مخزن</label><select id="tr-to" class="form-control"></select></div>
+      </div>
+      <button class="btn btn-info" style="width:100%" onclick="executeTransfer()">تنفيذ المناقلة</button>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw_eyiLMN3DYHX7wZtB9oB-lixKaYVQdoWHD739h_S8U0HZh_EQDz9qnuzLK7dt7kI7Cg/exec";
+    
+    function defaultData() {
+      return {
+        warehouses: { w1: 'المخزن الرئيسي', w2: 'المخزن الفرعي' },
+        units: ['كغم', 'غرام', 'لتر', 'قطعة', 'عبوة'],
+        categories: ['لحوم', 'خضروات', 'مواد جافة', 'منظفات'],
+        items: [],
+        stock: {},
+        log: []
+      };
+    }
+
+    let DB = defaultData();
+
+    async function load() {
+      document.getElementById('loading-overlay').style.display = 'flex';
+      try {
+        const response = await fetch(SCRIPT_URL);
+        const data = await response.json();
+        if(data && data.warehouses) {
+            DB = Object.assign(defaultData(), data);
+            migrateDataFormat(); // توافق البيانات القديمة مع نظام الدفعات الجديد
+        }
+      } catch (error) {
+        const local = localStorage.getItem('db_v2');
+        if(local) {
+            DB = JSON.parse(local);
+            migrateDataFormat();
+        }
+        toast('تعذر الاتصال السحابي، جاري استخدام النسخة المحلية', 'danger');
+      } finally {
+        document.getElementById('loading-overlay').style.display = 'none';
+        initApp();
+      }
+    }
+
+    // دالة لترقية البيانات القديمة لدعم التواريخ والدفعات (Batches)
+    function migrateDataFormat() {
+      if(!DB.categories) DB.categories = defaultData().categories;
+      for (let id in DB.stock) {
+        ['w1', 'w2'].forEach(wh => {
+           if (typeof DB.stock[id][wh] === 'number') {
+              // تحويل الرقم القديم إلى نظام دفعات
+              let oldTotal = DB.stock[id][wh];
+              DB.stock[id][wh] = { total: oldTotal, batches: [] };
+              if(oldTotal > 0) DB.stock[id][wh].batches.push({ qty: oldTotal, exp: null, ts: Date.now() });
+           }
+        });
+      }
+    }
+
+    async function save(newLogEntry = null) {
+      localStorage.setItem('db_v2', JSON.stringify(DB));
+      try {
+        fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ db: DB, newLog: newLogEntry }),
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        });
+      } catch (e) {}
+    }
+
+    function initApp() {
+      updateWarehouseNames();
+      populateDropdowns();
+      renderInventory();
+      renderExpiries();
+      renderLog();
+      renderSettingsItems();
+      renderCategoriesSettings();
+    }
+
+    function switchPage(pageId, navEl) {
+      document.querySelectorAll('.content-area').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+      navEl.classList.add('active');
+      document.getElementById('page-title').textContent = navEl.textContent.replace(/[^\u0600-\u06FF\s]/g, '').trim();
+    }
+
+    function toast(msg, type = 'success') {
+      const el = document.createElement('div');
+      el.className = `toast`;
+      el.style.borderRight = `4px solid var(--${type})`;
+      el.innerHTML = msg;
+      document.getElementById('toast-container').appendChild(el);
+      setTimeout(() => el.remove(), 3000);
+    }
+
+    function updateWarehouseNames() {
+      document.getElementById('th-w1').textContent = DB.warehouses.w1;
+      document.getElementById('th-w2').textContent = DB.warehouses.w2;
+      document.getElementById('set-w1').value = DB.warehouses.w1;
+      document.getElementById('set-w2').value = DB.warehouses.w2;
+    }
+
+    function populateDropdowns() {
+      const whOptions = `<option value="w1">${DB.warehouses.w1}</option><option value="w2">${DB.warehouses.w2}</option>`;
+      document.getElementById('op-wh').innerHTML = whOptions;
+      document.getElementById('tr-from').innerHTML = whOptions;
+      document.getElementById('tr-to').innerHTML = whOptions;
+
+      const itemOptions = DB.items.map(i => `<option value="${i.id}">${i.name} (${i.unit})</option>`).join('');
+      document.getElementById('op-item').innerHTML = itemOptions;
+      document.getElementById('tr-item').innerHTML = itemOptions;
+
+      document.getElementById('new-item-cat').innerHTML = DB.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+      document.getElementById('new-item-unit').innerHTML = DB.units.map(u => `<option value="${u}">${u}</option>`).join('');
+    }
+
+    // 1. הגرد العام
+    function renderInventory() {
+      const tbody = document.getElementById('inventory-table');
+      let criticalCount = 0; let okCount = 0;
+
+      tbody.innerHTML = DB.items.map(item => {
+        const s = DB.stock[item.id] || {w1:{total:0}, w2:{total:0}};
+        const total = (s.w1.total || 0) + (s.w2.total || 0);
+        const isCritical = total <= item.critical;
+        
+        if(isCritical) criticalCount++; else okCount++;
+
+        const barWidth = total > 0 ? Math.min((total / (item.critical * 3)) * 100, 100) : 0;
+        const color = isCritical ? 'var(--danger)' : 'var(--success)';
+        const badge = isCritical ? `<span class="badge danger">🚨 حرج</span>` : `<span class="badge success">✅ جيد</span>`;
+
+        return `
+        <tr style="${isCritical ? 'background: rgba(224,80,80,0.05);' : ''}">
+          <td style="font-weight:bold;">${item.name}</td>
+          <td>${item.category}</td>
+          <td>${s.w1.total || 0}</td>
+          <td>${s.w2.total || 0}</td>
+          <td style="font-weight:900; font-size:15px; color:${color};">${total} ${item.unit}</td>
+          <td><span class="stock-bar"><span class="stock-bar-fill" style="width:${barWidth}%; background:${color};"></span></span>${badge}</td>
+        </tr>`;
+      }).join('');
+
+      document.getElementById('stat-items').textContent = DB.items.length;
+      document.getElementById('stat-critical').textContent = criticalCount;
+      document.getElementById('stat-ok').textContent = okCount;
+    }
+
+    // 2. تتبع الصلاحيات
+    function renderExpiries() {
+      const tbody = document.getElementById('expiries-table');
+      let batchesList = [];
+      
+      DB.items.forEach(item => {
+        ['w1', 'w2'].forEach(wh => {
+           if(DB.stock[item.id] && DB.stock[item.id][wh] && DB.stock[item.id][wh].batches) {
+              DB.stock[item.id][wh].batches.forEach(b => {
+                 if(b.exp && b.qty > 0) {
+                    batchesList.push({ itemName: item.name, whName: DB.warehouses[wh], qty: b.qty, exp: b.exp, unit: item.unit });
+                 }
+              });
+           }
+        });
+      });
+
+      // ترتيب من الأقرب للانتهاء
+      batchesList.sort((a,b) => new Date(a.exp) - new Date(b.exp));
+
+      tbody.innerHTML = batchesList.map(b => {
+         let days = Math.ceil((new Date(b.exp) - new Date()) / (1000*60*60*24));
+         let badge = ''; let rowStyle = '';
+         
+         if(days < 0) { badge = '<span class="badge danger">منتهية الصلاحية ❌</span>'; rowStyle='background:rgba(224,80,80,0.1)'; }
+         else if(days <= 30) { badge = `<span class="badge warning">باقي ${days} يوم ⚠️</span>`; }
+         else { badge = '<span class="badge success">صالحة ✅</span>'; }
+         
+         return `<tr style="${rowStyle}">
+           <td style="font-weight:bold;">${b.itemName}</td>
+           <td>${b.qty} ${b.unit}</td>
+           <td>${b.whName}</td>
+           <td><span style="font-weight:bold; color:var(--info)">${b.exp}</span></td>
+           <td>${badge}</td>
+         </tr>`;
+      }).join('');
+    }
+
+    // 3. العمليات والمناقلة مع نظام الصلاحية
+    function openModal(modalId, opType = null) {
+      if(opType) {
+        document.getElementById('op-type').value = opType;
+        const titles = { inbound: '➕ شراء / إضافة', outbound: '➖ صرف / بيع', spoilage: '🗑️ تسجيل تالف' };
+        document.getElementById('op-title').textContent = titles[opType];
+        
+        // إظهار حقل الصلاحية فقط في حالة الإضافة
+        document.getElementById('op-expiry-group').style.display = (opType === 'inbound') ? 'block' : 'none';
+      }
+      document.getElementById(modalId).classList.add('open');
+    }
+    
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('open');
+      document.querySelectorAll('input[type="number"], input[type="text"], input[type="date"]').forEach(el => {
+        if(!el.id.startsWith('set-')) el.value = '';
+      });
+    }
+
+    function addLog(type, itemId, qty, wh, note) {
+      const item = DB.items.find(i => i.id === itemId);
+      const logEntry = { ts: Date.now(), type, itemId, itemName: item ? item.name : 'مجهول', qty, wh, whName: wh === 'مناقلة' ? 'مناقلة' : DB.warehouses[wh], note: note || '' };
+      DB.log.unshift(logEntry);
+      if (DB.log.length > 500) DB.log = DB.log.slice(0, 500);
+      save(logEntry);
+    }
+
+    function executeOperation() {
+      const type = document.getElementById('op-type').value;
+      const itemId = document.getElementById('op-item').value;
+      const qty = parseFloat(document.getElementById('op-qty').value);
+      const wh = document.getElementById('op-wh').value;
+      const exp = document.getElementById('op-expiry').value;
+      const note = document.getElementById('op-note').value;
+
+      if(!itemId || !qty || qty <= 0) return toast('تأكد من اختيار المادة والكمية', 'danger');
+
+      let stockObj = DB.stock[itemId][wh];
+
+      if(type === 'inbound') {
+        stockObj.total += qty;
+        stockObj.batches.push({ qty: qty, exp: exp || null, ts: Date.now() });
+      } 
+      else { // Outbound or Spoilage
+        if(stockObj.total < qty) return toast('الرصيد في المخزن المحدد غير كافٍ!', 'danger');
+        
+        stockObj.total -= qty;
+        let remQty = qty;
+
+        // ترتيب الدفعات: ذات الصلاحية الأقرب للانتهاء أولاً، ثم الدفعات بدون صلاحية
+        stockObj.batches.sort((a, b) => {
+           if(a.exp && b.exp) return new Date(a.exp) - new Date(b.exp);
+           if(a.exp) return -1;
+           if(b.exp) return 1;
+           return a.ts - b.ts;
+        });
+
+        // خصم الكمية من الدفعات بنظام FIFO
+        for(let i=0; i<stockObj.batches.length; i++) {
+           if(remQty <= 0) break;
+           let b = stockObj.batches[i];
+           let deduct = Math.min(b.qty, remQty);
+           b.qty -= deduct;
+           remQty -= deduct;
+        }
+        // تنظيف الدفعات الفارغة
+        stockObj.batches = stockObj.batches.filter(b => b.qty > 0);
+      }
+
+      addLog(type, itemId, qty, wh, note);
+      closeModal('modal-op');
+      initApp();
+      toast('تمت العملية بنجاح');
+    }
+
+    function executeTransfer() {
+      const itemId = document.getElementById('tr-item').value;
+      const qty = parseFloat(document.getElementById('tr-qty').value);
+      const fromWh = document.getElementById('tr-from').value;
+      const toWh = document.getElementById('tr-to').value;
+
+      if(fromWh === toWh) return toast('لا يمكن المناقلة لنفس المخزن', 'danger');
+      if(!qty || qty <= 0) return toast('أدخل كمية صحيحة', 'danger');
+      
+      let fromStock = DB.stock[itemId][fromWh];
+      let toStock = DB.stock[itemId][toWh];
+
+      if(fromStock.total < qty) return toast('الرصيد في المخزن المرسل غير كافٍ', 'danger');
+
+      fromStock.total -= qty;
+      toStock.total += qty;
+      
+      let remQty = qty;
+      fromStock.batches.sort((a, b) => {
+         if(a.exp && b.exp) return new Date(a.exp) - new Date(b.exp);
+         if(a.exp) return -1;
+         if(b.exp) return 1;
+         return a.ts - b.ts;
+      });
+
+      let transferredBatches = [];
+      for(let i=0; i<fromStock.batches.length; i++) {
+         if(remQty <= 0) break;
+         let b = fromStock.batches[i];
+         let deduct = Math.min(b.qty, remQty);
+         b.qty -= deduct;
+         remQty -= deduct;
+         transferredBatches.push({qty: deduct, exp: b.exp, ts: b.ts});
+      }
+      
+      fromStock.batches = fromStock.batches.filter(b => b.qty > 0);
+      toStock.batches.push(...transferredBatches);
+      
+      addLog('transfer', itemId, qty, 'مناقلة', `من ${DB.warehouses[fromWh]} إلى ${DB.warehouses[toWh]}`);
+      closeModal('modal-transfer');
+      initApp();
+      toast('تمت المناقلة بنجاح', 'info');
+    }
+
+    function renderLog() {
+      const types = { inbound: '➕ إضافة', outbound: '➖ صرف', spoilage: '🗑️ تالف', transfer: '🔄 مناقلة' };
+      const colors = { inbound: 'success', outbound: 'danger', spoilage: 'warning', transfer: 'info' };
+      
+      document.getElementById('log-table').innerHTML = DB.log.map(log => {
+        const date = new Date(log.ts).toLocaleString('ar-SA');
+        return `<tr>
+          <td style="font-size:11px; color:var(--text-secondary)">${date}</td>
+          <td><span class="badge ${colors[log.type]}">${types[log.type]}</span></td>
+          <td style="font-weight:bold">${log.itemName}</td>
+          <td>${log.qty}</td>
+          <td>${log.whName}</td>
+          <td>${log.note}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // 4. الإعدادات
+    function saveWarehouses() {
+      DB.warehouses.w1 = document.getElementById('set-w1').value || 'المخزن الأول';
+      DB.warehouses.w2 = document.getElementById('set-w2').value || 'المخزن الثاني';
+      save(); initApp(); toast('تم حفظ أسماء المخازن بنجاح');
+    }
+
+    function renderCategoriesSettings() {
+      document.getElementById('settings-categories-table').innerHTML = DB.categories.map((cat, index) => `
+        <tr><td>${cat}</td><td><button class="btn btn-sm btn-danger" onclick="deleteCategory(${index})">حذف</button></td></tr>
+      `).join('');
+    }
+
+    function addCategory() {
+      const input = document.getElementById('new-category-name');
+      const catName = input.value.trim();
+      if(!catName || DB.categories.includes(catName)) return;
+      DB.categories.push(catName);
+      input.value = ''; save(); initApp(); toast('تمت الإضافة');
+    }
+
+    function deleteCategory(index) {
+      if(confirm('هل أنت متأكد من الحذف؟')) { DB.categories.splice(index, 1); save(); initApp(); }
+    }
+
+    function addNewItem() {
+      const name = document.getElementById('new-item-name').value;
+      const critical = parseFloat(document.getElementById('new-item-critical').value) || 0;
+      const cat = document.getElementById('new-item-cat').value;
+      const unit = document.getElementById('new-item-unit').value;
+
+      if(!name) return toast('يرجى إدخال اسم المادة', 'danger');
+      
+      const id = 'item_' + Date.now();
+      DB.items.push({ id, name, unit, category: cat, critical });
+      DB.stock[id] = { w1: {total:0, batches:[]}, w2: {total:0, batches:[]} };
+      
+      document.getElementById('new-item-name').value = '';
+      document.getElementById('new-item-critical').value = '';
+      save(); initApp(); toast('تمت إضافة المادة');
+    }
+
+    function renderSettingsItems() {
+      document.getElementById('settings-items-table').innerHTML = DB.items.map(item => `
+        <tr>
+          <td>${item.name} <span style="font-size:11px; color:var(--text-secondary)">(${item.category})</span></td>
+          <td><span class="badge danger">${item.critical} ${item.unit}</span></td>
+          <td><button class="btn btn-sm btn-danger" onclick="deleteItem('${item.id}')">حذف</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function deleteItem(id) {
+      if(confirm('هل أنت متأكد من حذف هذه المادة؟')) {
+        DB.items = DB.items.filter(i => i.id !== id);
+        delete DB.stock[id];
+        save(); initApp(); toast('تم الحذف');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', load);
+  </script>
+</body>
+</html>
