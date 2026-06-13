@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>نظام إدارة مخازن المطعم - النسخة الشاملة</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <title>نظام إدارة مخازن المطعم - النسخة الاحترافية بالفلاتر الكاملة</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght=400;600;700;900&display=swap" rel="stylesheet" />
   <style>
     :root {
       --bg-main: #0F1923; --bg-card: #162030; --bg-sidebar: #0B1520;
@@ -38,6 +38,13 @@
     .content-area { padding: 30px; display: none; }
     .content-area.active { display: block; }
 
+    /* شريط الفلاتر السريعة */
+    .filter-bar { display: flex; flex-wrap: wrap; gap: 12px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 16px; align-items: flex-end; }
+    .filter-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
+    .filter-group label { font-size: 11px; color: var(--text-secondary); font-weight: bold; }
+    .filter-control { background: var(--bg-main); border: 1px solid var(--border); color: var(--text-primary); padding: 6px 10px; border-radius: 6px; font-family: var(--font); font-size: 12px; outline: none; width: 100%; }
+    .filter-control:focus { border-color: var(--accent); }
+
     /* البطاقات والإحصاءات */
     .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px; }
     .card-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
@@ -57,8 +64,9 @@
     .badge.danger { background: var(--danger-dim); color: var(--danger); }
     .badge.success { background: var(--success-dim); color: var(--success); }
     .badge.warning { background: var(--accent-glow); color: var(--accent); }
+    .badge.info { background: var(--info-dim); color: var(--info); }
     
-    /* شريط مستوى المخزون (الحد الحرج) */
+    /* شريط مستوى المخزون */
     .stock-bar { width: 80px; height: 6px; background: rgba(255,255,255,.1); border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 8px; }
     .stock-bar-fill { height: 100%; border-radius: 3px; display: block; }
 
@@ -159,6 +167,21 @@
     </section>
 
     <section id="page-expiries" class="content-area">
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label>تصفية حسب المادة</label>
+          <select id="filter-exp-item" class="filter-control" onchange="renderExpiries()">
+            <option value="">كل المواد</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>تصفية حسب المخزن</label>
+          <select id="filter-exp-wh" class="filter-control" onchange="renderExpiries()">
+            <option value="">كل المخازن</option>
+          </select>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-title">المواد ذات تواريخ الصلاحية (مرتبة من الأقرب للانتهاء)</div>
         <table>
@@ -178,20 +201,84 @@
 
     <section id="page-reports" class="content-area">
       <div class="card">
-        <div class="card-title">سجل الحركات المتقدم</div>
-        <table>
-          <thead>
-            <tr>
-              <th>التاريخ والوقت</th>
-              <th>العملية</th>
-              <th>المادة</th>
-              <th>الكمية</th>
-              <th>المخزن</th>
-              <th>ملاحظات</th>
-            </tr>
-          </thead>
-          <tbody id="log-table"></tbody>
-        </table>
+        <div class="card-title">
+          <span>📈 تحليل الاستهلاك والمبيعات الذكي</span>
+          <select id="report-period" class="form-control" style="width: 180px; display: inline-block; padding: 5px 10px;" onchange="renderConsumptionReport()">
+            <option value="1">اليوم الحالي</option>
+            <option value="3">آخر 3 أيام</option>
+            <option value="7">آخر 7 أيام</option>
+            <option value="10" selected>آخر 10 أيام</option>
+            <option value="30">آخر 30 يوماً</option>
+          </select>
+        </div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>المادة</th>
+                <th>التصنيف</th>
+                <th>إجمالي الكمية المستهلكة / المباعة</th>
+                <th>معدل السحب اليومي</th>
+                <th>حالة الطلب</th>
+              </tr>
+            </thead>
+            <tbody id="consumption-report-table"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔍 أدوات تصفية وبحث السجل المتطورة</div>
+        <div class="filter-bar">
+          <div class="filter-group">
+            <label>من تاريخ</label>
+            <input type="date" id="filter-log-date-from" class="filter-control" onchange="renderLog()" />
+          </div>
+          <div class="filter-group">
+            <label>إلى تاريخ</label>
+            <input type="date" id="filter-log-date-to" class="filter-control" onchange="renderLog()" />
+          </div>
+          <div class="filter-group">
+            <label>نوع الحركة</label>
+            <select id="filter-log-type" class="filter-control" onchange="renderLog()">
+              <option value="">كل الحركات</option>
+              <option value="inbound">➕ إضافة / شراء</option>
+              <option value="outbound">➖ صرف / بيع</option>
+              <option value="transfer">🔄 مناقلة</option>
+              <option value="spoilage">🗑️ تالف</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>المادة</label>
+            <select id="filter-log-item" class="filter-control" onchange="renderLog()">
+              <option value="">كل المواد</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>المخزن</label>
+            <select id="filter-log-wh" class="filter-control" onchange="renderLog()">
+              <option value="">كل المخازن</option>
+            </select>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="clearLogFilters()" style="height: 32px;">❌ إعادة تعيين</button>
+        </div>
+
+        <div class="card-title" style="margin-top: 20px;">سجل الحركات المتقدم</div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>التاريخ والوقت</th>
+                <th>العملية</th>
+                <th>المادة</th>
+                <th>الكمية</th>
+                <th>المخزن</th>
+                <th>ملاحظات</th>
+              </tr>
+            </thead>
+            <tbody id="log-table"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -298,7 +385,7 @@
         const data = await response.json();
         if(data && data.warehouses) {
             DB = Object.assign(defaultData(), data);
-            migrateDataFormat(); // توافق البيانات القديمة مع نظام الدفعات الجديد
+            migrateDataFormat();
         }
       } catch (error) {
         const local = localStorage.getItem('db_v2');
@@ -313,13 +400,11 @@
       }
     }
 
-    // دالة لترقية البيانات القديمة لدعم التواريخ والدفعات (Batches)
     function migrateDataFormat() {
       if(!DB.categories) DB.categories = defaultData().categories;
       for (let id in DB.stock) {
         ['w1', 'w2'].forEach(wh => {
            if (typeof DB.stock[id][wh] === 'number') {
-              // تحويل الرقم القديم إلى نظام دفعات
               let oldTotal = DB.stock[id][wh];
               DB.stock[id][wh] = { total: oldTotal, batches: [] };
               if(oldTotal > 0) DB.stock[id][wh].batches.push({ qty: oldTotal, exp: null, ts: Date.now() });
@@ -345,6 +430,7 @@
       renderInventory();
       renderExpiries();
       renderLog();
+      renderConsumptionReport();
       renderSettingsItems();
       renderCategoriesSettings();
     }
@@ -379,15 +465,23 @@
       document.getElementById('tr-from').innerHTML = whOptions;
       document.getElementById('tr-to').innerHTML = whOptions;
 
+      // تحديث قوائم الفلاتر الذكية
+      const filterWhOptions = `<option value="">كل المخازن</option><option value="w1">${DB.warehouses.w1}</option><option value="w2">${DB.warehouses.w2}</option>`;
+      document.getElementById('filter-exp-wh').innerHTML = filterWhOptions;
+      document.getElementById('filter-log-wh').innerHTML = filterWhOptions;
+
       const itemOptions = DB.items.map(i => `<option value="${i.id}">${i.name} (${i.unit})</option>`).join('');
       document.getElementById('op-item').innerHTML = itemOptions;
       document.getElementById('tr-item').innerHTML = itemOptions;
+
+      const filterItemOptions = `<option value="">كل المواد</option>` + DB.items.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+      document.getElementById('filter-exp-item').innerHTML = filterItemOptions;
+      document.getElementById('filter-log-item').innerHTML = filterItemOptions;
 
       document.getElementById('new-item-cat').innerHTML = DB.categories.map(c => `<option value="${c}">${c}</option>`).join('');
       document.getElementById('new-item-unit').innerHTML = DB.units.map(u => `<option value="${u}">${u}</option>`).join('');
     }
 
-    // 1. הגرد العام
     function renderInventory() {
       const tbody = document.getElementById('inventory-table');
       let criticalCount = 0; let okCount = 0;
@@ -419,13 +513,20 @@
       document.getElementById('stat-ok').textContent = okCount;
     }
 
-    // 2. تتبع الصلاحيات
     function renderExpiries() {
       const tbody = document.getElementById('expiries-table');
+      const filterItem = document.getElementById('filter-exp-item').value;
+      const filterWh = document.getElementById('filter-exp-wh').value;
       let batchesList = [];
       
       DB.items.forEach(item => {
+        // فلتر المادة
+        if(filterItem && item.id !== filterItem) return;
+
         ['w1', 'w2'].forEach(wh => {
+           // فلتر المخزن
+           if(filterWh && wh !== filterWh) return;
+
            if(DB.stock[item.id] && DB.stock[item.id][wh] && DB.stock[item.id][wh].batches) {
               DB.stock[item.id][wh].batches.forEach(b => {
                  if(b.exp && b.qty > 0) {
@@ -436,7 +537,6 @@
         });
       });
 
-      // ترتيب من الأقرب للانتهاء
       batchesList.sort((a,b) => new Date(a.exp) - new Date(b.exp));
 
       tbody.innerHTML = batchesList.map(b => {
@@ -457,14 +557,51 @@
       }).join('');
     }
 
-    // 3. العمليات والمناقلة مع نظام الصلاحية
+    function renderConsumptionReport() {
+      const periodDays = parseInt(document.getElementById('report-period').value) || 10;
+      const tbody = document.getElementById('consumption-report-table');
+      const timeLimit = Date.now() - (periodDays * 24 * 60 * 60 * 1000);
+
+      let consumptionMap = {};
+      DB.items.forEach(item => { consumptionMap[item.id] = 0; });
+
+      DB.log.forEach(log => {
+        if(log.ts >= timeLimit && (log.type === 'outbound' || log.type === 'spoilage')) {
+          if(consumptionMap[log.itemId] !== undefined) {
+            consumptionMap[log.itemId] += log.qty;
+          }
+        }
+      });
+
+      let reportData = DB.items.map(item => {
+        let totalConsumed = consumptionMap[item.id] || 0;
+        let dailyAverage = (totalConsumed / periodDays).toFixed(2);
+        return { item, totalConsumed, dailyAverage };
+      });
+
+      reportData.sort((a, b) => b.totalConsumed - a.totalConsumed);
+
+      tbody.innerHTML = reportData.map(row => {
+        let demandBadge = '<span class="badge info">سحب عادي</span>';
+        if(row.totalConsumed > 0) {
+          demandBadge = row.totalConsumed > (row.item.critical * 2) ? '<span class="badge danger">طلب عالي 🔥</span>' : '<span class="badge success">طلب مستقر</span>';
+        }
+        return `
+        <tr>
+          <td style="font-weight:bold;">${row.item.name}</td>
+          <td>${row.item.category}</td>
+          <td style="font-weight:bold; font-size:14px; color:var(--accent);">${row.totalConsumed} ${row.item.unit}</td>
+          <td>${row.dailyAverage} / يوم</td>
+          <td>${demandBadge}</td>
+        </tr>`;
+      }).join('');
+    }
+
     function openModal(modalId, opType = null) {
       if(opType) {
         document.getElementById('op-type').value = opType;
         const titles = { inbound: '➕ شراء / إضافة', outbound: '➖ صرف / بيع', spoilage: '🗑️ تسجيل تالف' };
         document.getElementById('op-title').textContent = titles[opType];
-        
-        // إظهار حقل الصلاحية فقط في حالة الإضافة
         document.getElementById('op-expiry-group').style.display = (opType === 'inbound') ? 'block' : 'none';
       }
       document.getElementById(modalId).classList.add('open');
@@ -501,13 +638,12 @@
         stockObj.total += qty;
         stockObj.batches.push({ qty: qty, exp: exp || null, ts: Date.now() });
       } 
-      else { // Outbound or Spoilage
+      else {
         if(stockObj.total < qty) return toast('الرصيد في المخزن المحدد غير كافٍ!', 'danger');
         
         stockObj.total -= qty;
         let remQty = qty;
 
-        // ترتيب الدفعات: ذات الصلاحية الأقرب للانتهاء أولاً، ثم الدفعات بدون صلاحية
         stockObj.batches.sort((a, b) => {
            if(a.exp && b.exp) return new Date(a.exp) - new Date(b.exp);
            if(a.exp) return -1;
@@ -515,7 +651,6 @@
            return a.ts - b.ts;
         });
 
-        // خصم الكمية من الدفعات بنظام FIFO
         for(let i=0; i<stockObj.batches.length; i++) {
            if(remQty <= 0) break;
            let b = stockObj.batches[i];
@@ -523,7 +658,6 @@
            b.qty -= deduct;
            remQty -= deduct;
         }
-        // تنظيف الدفعات الفارغة
         stockObj.batches = stockObj.batches.filter(b => b.qty > 0);
       }
 
@@ -577,11 +711,36 @@
       toast('تمت المناقلة بنجاح', 'info');
     }
 
+    // تعديل كود عرض السجل ليتوافق مع نظام الفلاتر المتعددة والمترابطة
     function renderLog() {
       const types = { inbound: '➕ إضافة', outbound: '➖ صرف', spoilage: '🗑️ تالف', transfer: '🔄 مناقلة' };
       const colors = { inbound: 'success', outbound: 'danger', spoilage: 'warning', transfer: 'info' };
       
-      document.getElementById('log-table').innerHTML = DB.log.map(log => {
+      // جلب قيم الفلاتر الحالية
+      const dateFrom = document.getElementById('filter-log-date-from').value;
+      const dateTo = document.getElementById('filter-log-date-to').value;
+      const filterType = document.getElementById('filter-log-type').value;
+      const filterItem = document.getElementById('filter-log-item').value;
+      const filterWh = document.getElementById('filter-log-wh').value;
+
+      // تصفية المصفوفة بناءً على الفلاتر النشطة
+      const filteredLog = DB.log.filter(log => {
+         // فلتر تاريخ البدء
+         if(dateFrom && new Date(log.ts) < new Date(dateFrom + 'T00:00:00')) return false;
+         // فلتر تاريخ الانتهاء
+         if(dateTo && new Date(log.ts) > new Date(dateTo + 'T23:59:59')) return false;
+         // فلتر نوع الحركة
+         if(filterType && log.type !== filterType) return false;
+         // فلتر المادة
+         if(filterItem && log.itemId !== filterItem) return false;
+         // فلتر المخزن
+         if(filterWh && log.wh !== filterWh && log.type !== 'transfer') return false; 
+         // في حالة المناقلة، يتم تمريرها إلا إذا حددنا مخزناً ولم تكن تابعة له (ملاحظة: المناقلة تخص مخزنين)
+         
+         return true;
+      });
+
+      document.getElementById('log-table').innerHTML = filteredLog.map(log => {
         const date = new Date(log.ts).toLocaleString('ar-SA');
         return `<tr>
           <td style="font-size:11px; color:var(--text-secondary)">${date}</td>
@@ -594,7 +753,16 @@
       }).join('');
     }
 
-    // 4. الإعدادات
+    function clearLogFilters() {
+      document.getElementById('filter-log-date-from').value = '';
+      document.getElementById('filter-log-date-to').value = '';
+      document.getElementById('filter-log-type').value = '';
+      document.getElementById('filter-log-item').value = '';
+      document.getElementById('filter-log-wh').value = '';
+      renderLog();
+      toast('تمت إعادة تعيين فلاتر السجل');
+    }
+
     function saveWarehouses() {
       DB.warehouses.w1 = document.getElementById('set-w1').value || 'المخزن الأول';
       DB.warehouses.w2 = document.getElementById('set-w2').value || 'المخزن الثاني';
