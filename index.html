@@ -1,1511 +1,1160 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>نظام إدارة مخازن المطعم - النسخة الاحترافية بالفلاتر الكاملة</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght=400;600;700;900&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --bg-main: #0F1923; --bg-card: #162030; --bg-sidebar: #0B1520;
-      --accent: #E8A020; --accent-dim: #C4851A; --accent-glow: rgba(232,160,32,.18);
-      --danger: #E05050; --danger-dim: rgba(224,80,80,.15);
-      --success: #38C18A; --success-dim: rgba(56,193,138,.15);
-      --info: #4CA8E8; --info-dim: rgba(76,168,232,.15);
-      --warning: #F59E0B; --warning-dim: rgba(245,158,11,.15);
-      --text-primary: #EDF2F7; --text-secondary: #8A9BB0;
-      --border: rgba(255,255,255,.07); --radius: 10px; --radius-lg: 16px;
-      --font: 'Cairo', sans-serif;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: var(--font); background: var(--bg-main); color: var(--text-primary); display: flex; min-height: 100vh; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة المخازن الاحترافي - سحابي</title>
+    <!-- استدعاء خط Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- استدعاء أيقونات FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- مكتبة التصدير إلى إكسيل (SheetJS) -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     
-    /* شاشة التحميل */
-    #loading-overlay { position: fixed; inset: 0; background: rgba(15, 25, 35, 0.9); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; }
-    .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* الشريط الجانبي */
-    #sidebar { width: 240px; background: var(--bg-sidebar); border-left: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; right: 0; height: 100vh; z-index: 100; }
-    .sidebar-logo { padding: 24px 20px; border-bottom: 1px solid var(--border); text-align: center; }
-    .sidebar-logo h1 { font-size: 16px; font-weight: 700; color: var(--accent); }
-    nav { flex: 1; padding: 16px 0; }
-    .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; cursor: pointer; color: var(--text-secondary); font-size: 14px; font-weight: 600; border-right: 3px solid transparent; transition: 0.2s; }
-    .nav-item:hover, .nav-item.active { color: var(--text-primary); background: var(--accent-glow); border-right-color: var(--accent); }
-    
-    /* المحتوى الرئيسي */
-    #main { margin-right: 240px; flex: 1; padding: 0; }
-    .page-header { padding: 20px 30px; border-bottom: 1px solid var(--border); background: var(--bg-main); position: sticky; top: 0; z-index: 50; display: flex; justify-content: space-between; align-items: center; }
-    .content-area { padding: 30px; display: none; }
-    .content-area.active { display: block; }
-
-    /* شريط الفلاتر السريعة */
-    .filter-bar { display: flex; flex-wrap: wrap; gap: 12px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 16px; align-items: flex-end; }
-    .filter-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
-    .filter-group label { font-size: 11px; color: var(--text-secondary); font-weight: bold; }
-    .filter-control { background: var(--bg-main); border: 1px solid var(--border); color: var(--text-primary); padding: 6px 10px; border-radius: 6px; font-family: var(--font); font-size: 12px; outline: none; width: 100%; }
-    .filter-control:focus { border-color: var(--accent); }
-
-    /* البطاقات والإحصاءات */
-    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px; }
-    .card-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; text-align: center; border-bottom: 3px solid var(--accent); }
-    .stat-card.danger { border-bottom-color: var(--danger); }
-    .stat-card.success { border-bottom-color: var(--success); }
-    .stat-value { font-size: 28px; font-weight: 900; margin-bottom: 5px; }
-    .stat-label { font-size: 13px; color: var(--text-secondary); }
-
-    /* الجداول والشارات */
-    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-    th { background: rgba(255,255,255,.04); color: var(--text-secondary); padding: 12px; text-align: right; font-size: 12px; }
-    td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-    tr:hover { background: rgba(255,255,255,.02); }
-    .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-    .badge.danger { background: var(--danger-dim); color: var(--danger); }
-    .badge.success { background: var(--success-dim); color: var(--success); }
-    .badge.warning { background: var(--warning-dim); color: var(--warning); }
-    .badge.info { background: var(--info-dim); color: var(--info); }
-    
-    /* شريط مستوى المخزون */
-    .stock-bar { width: 80px; height: 6px; background: rgba(255,255,255,.1); border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 8px; }
-    .stock-bar-fill { height: 100%; border-radius: 3px; display: block; }
-
-    /* النماذج والأزرار */
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 700; }
-    .form-control { width: 100%; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-primary); padding: 10px; font-family: var(--font); outline: none; }
-    .form-control:focus { border-color: var(--accent); }
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-    .btn { padding: 10px 20px; border-radius: var(--radius); border: none; cursor: pointer; font-family: var(--font); font-weight: 700; font-size: 13px; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
-    .btn-primary { background: var(--accent); color: #0F1923; }
-    .btn-success { background: var(--success-dim); color: var(--success); border: 1px solid var(--success); }
-    .btn-danger { background: var(--danger-dim); color: var(--danger); border: 1px solid var(--danger); }
-    .btn-info { background: var(--info-dim); color: var(--info); border: 1px solid var(--info); }
-    .btn-sm { padding: 6px 12px; font-size: 12px; }
-
-    /* النوافذ المنبثقة */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.2s; }
-    .modal-overlay.open { opacity: 1; pointer-events: all; }
-    .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); width: 100%; max-width: 500px; padding: 25px; transform: scale(0.95); transition: 0.2s; }
-    .modal-overlay.open .modal { transform: scale(1); }
-    .modal-header { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 18px; font-weight: 700; }
-    .modal-close { background: none; border: none; color: var(--danger); font-size: 20px; cursor: pointer; }
-    
-    /* التنبيهات */
-    #toast-container { position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-    .toast { background: var(--bg-card); border: 1px solid var(--border); padding: 12px 20px; border-radius: var(--radius); font-size: 13px; font-weight: 700; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-  </style>
-</head>
-<body>
-
-  <div id="loading-overlay">
-    <div class="spinner"></div>
-    <p style="font-weight: 600; color: var(--accent);">جاري المزامنة مع السحابة...</p>
-  </div>
-
-  <aside id="sidebar">
-    <div class="sidebar-logo">
-      <h1>📦 إدارة المخازن</h1>
-    </div>
-    <nav>
-      <div class="nav-item active" onclick="switchPage('page-dashboard', this)">📊 لوحة التحكم (الجرد)</div>
-      <div class="nav-item" onclick="switchPage('page-operations', this)">⚙️ العمليات والمناقلة</div>
-      <div class="nav-item" onclick="switchPage('page-expiries', this)">⏳ تتبع الصلاحيات</div>
-      <div class="nav-item" onclick="switchPage('page-reports', this)">📑 التقارير والسجل</div>
-      <div class="nav-item" onclick="switchPage('page-settings', this)">🔧 الإعدادات الشاملة</div>
-    </nav>
-  </aside>
-
-  <main id="main">
-    <div class="page-header">
-      <h2 id="page-title">لوحة التحكم</h2>
-    </div>
-
-    <section id="page-dashboard" class="content-area active">
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-value" id="stat-items" style="color:var(--info);">0</div>
-          <div class="stat-label">إجمالي المواد</div>
-        </div>
-        <div class="stat-card success">
-          <div class="stat-value" id="stat-ok" style="color:var(--success);">0</div>
-          <div class="stat-label">مواد وضعها ممتاز</div>
-        </div>
-        <div class="stat-card danger">
-          <div class="stat-value" id="stat-critical" style="color:var(--danger);">0</div>
-          <div class="stat-label">مواد تحت الحد الحرج 🚨</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">الجرد الشامل والحدود الحرجة</div>
-        <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>المادة</th>
-                <th>التصنيف</th>
-                <th id="th-w1">المخزن الأول</th>
-                <th id="th-w2">المخزن الثاني</th>
-                <th>الإجمالي</th>
-                <th>مؤشر المخزون</th>
-              </tr>
-            </thead>
-            <tbody id="inventory-table"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section id="page-operations" class="content-area">
-      <div class="card" style="display: flex; gap: 15px; flex-wrap: wrap;">
-        <button class="btn btn-success" onclick="openModal('modal-op', 'inbound')">➕ شراء / إضافة</button>
-        <button class="btn btn-danger" onclick="openModal('modal-op', 'outbound')">➖ صرف / بيع</button>
-        <button class="btn btn-info" onclick="openModal('modal-transfer')">🔄 مناقلة بين المخازن</button>
-        <button class="btn" style="background:var(--accent-glow); color:var(--accent);" onclick="openModal('modal-op', 'spoilage')">🗑️ تسجيل تالف</button>
-      </div>
-    </section>
-
-    <section id="page-expiries" class="content-area">
-      <div class="filter-bar">
-        <div class="filter-group">
-          <label>تصفية حسب المادة</label>
-          <select id="filter-exp-item" class="filter-control" onchange="renderExpiries()">
-            <option value="">كل المواد</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label>تصفية حسب المخزن</label>
-          <select id="filter-exp-wh" class="filter-control" onchange="renderExpiries()">
-            <option value="">كل المخازن</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">المواد ذات تواريخ الصلاحية (مرتبة من الأقرب للانتهاء)</div>
-        <table>
-          <thead>
-            <tr>
-              <th>المادة</th>
-              <th>الكمية المتوفرة</th>
-              <th>المخزن</th>
-              <th>تاريخ الصلاحية</th>
-              <th>الحالة</th>
-            </tr>
-          </thead>
-          <tbody id="expiries-table"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section id="page-reports" class="content-area">
-      <div class="card">
-        <div class="card-title">
-          <span>📈 تحليل الاستهلاك والمبيعات الذكي</span>
-          <select id="report-period" class="form-control" style="width: 180px; display: inline-block; padding: 5px 10px;" onchange="renderConsumptionReport()">
-            <option value="1">اليوم الحالي</option>
-            <option value="3">آخر 3 أيام</option>
-            <option value="7">آخر 7 أيام</option>
-            <option value="10" selected>آخر 10 أيام</option>
-            <option value="30">آخر 30 يوماً</option>
-          </select>
-        </div>
-        <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>المادة</th>
-                <th>التصنيف</th>
-                <th>إجمالي المستهلك</th>
-                <th>معدل السحب اليومي</th>
-                <th>حالة الطلب</th>
-              </tr>
-            </thead>
-            <tbody id="consumption-report-table"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">🔍 أدوات تصفية وبحث السجل المتطورة</div>
-        <div class="filter-bar">
-          <div class="filter-group">
-            <label>من تاريخ</label>
-            <input type="date" id="filter-log-date-from" class="filter-control" onchange="renderLog()" />
-          </div>
-          <div class="filter-group">
-            <label>إلى تاريخ</label>
-            <input type="date" id="filter-log-date-to" class="filter-control" onchange="renderLog()" />
-          </div>
-          <div class="filter-group">
-            <label>نوع الحركة</label>
-            <select id="filter-log-type" class="filter-control" onchange="renderLog()">
-              <option value="">كل الحركات</option>
-              <option value="inbound">➕ إضافة / شراء</option>
-              <option value="outbound">➖ صرف / بيع</option>
-              <option value="transfer">🔄 مناقلة</option>
-              <option value="spoilage">🗑️ تالف</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>المادة</label>
-            <select id="filter-log-item" class="filter-control" onchange="renderLog()">
-              <option value="">كل المواد</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>المخزن</label>
-            <select id="filter-log-wh" class="filter-control" onchange="renderLog()">
-              <option value="">كل المخازن</option>
-            </select>
-          </div>
-          <button class="btn btn-danger btn-sm" onclick="clearLogFilters()" style="height: 32px;">❌ إعادة تعيين</button>
-        </div>
-
-        <div class="card-title" style="margin-top: 20px;">سجل الحركات المتقدم</div>
-        <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>التاريخ والوقت</th>
-                <th>العملية</th>
-                <th>المادة</th>
-                <th>الكمية المدخلة</th>
-                <th>المخزن</th>
-                <th>ملاحظات</th>
-              </tr>
-            </thead>
-            <tbody id="log-table"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section id="page-settings" class="content-area">
-      <div class="form-grid">
-        <div class="card">
-          <div class="card-title">🏭 أسماء المخازن</div>
-          <div class="form-group"><label>المخزن الأول</label><input type="text" id="set-w1" class="form-control" /></div>
-          <div class="form-group"><label>المخزن الثاني</label><input type="text" id="set-w2" class="form-control" /></div>
-          <button class="btn btn-primary" onclick="saveWarehouses()">💾 حفظ المخازن</button>
-        </div>
-
-        <div class="card">
-          <div class="card-title">🏷️ إدارة التصنيفات</div>
-          <div class="form-group" style="display: flex; gap: 10px;">
-            <input type="text" id="new-category-name" class="form-control" placeholder="اسم التصنيف الجديد" />
-            <button class="btn btn-success" onclick="addCategory()">إضافة</button>
-          </div>
-          <table style="margin-top: 15px;">
-            <thead><tr><th>التصنيف</th><th>إجراء</th></tr></thead>
-            <tbody id="settings-categories-table"></tbody>
-          </table>
-        </div>
-
-        <div class="card">
-          <div class="card-title">📏 إدارة الوحدات</div>
-          <div class="form-group" style="display: flex; gap: 10px;">
-            <input type="text" id="new-unit-name" class="form-control" placeholder="اسم الوحدة الجديدة" />
-            <button class="btn btn-success" onclick="addUnit()">إضافة</button>
-          </div>
-          <table style="margin-top: 15px;">
-            <thead><tr><th>الوحدة</th><th>إجراء</th></tr></thead>
-            <tbody id="settings-units-table"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title"><span>🥩 إضافة وإدارة المواد والتعبئة</span></div>
-        <div class="form-grid">
-          <div class="form-group"><label>اسم المادة</label><input type="text" id="new-item-name" class="form-control" /></div>
-          <div class="form-group"><label>التصنيف</label><select id="new-item-cat" class="form-control"></select></div>
-          <div class="form-group"><label>الوحدة الكبرى (الأساسية)</label><select id="new-item-unit1" class="form-control"></select></div>
-          <div class="form-group"><label>الوحدة الصغرى (التعبئة / اختياري)</label><select id="new-item-unit2" class="form-control" onchange="toggleFactor()"></select></div>
-          <div class="form-group" id="factor-group" style="display: none;"><label>الوحدة الكبرى تحتوي على كم وحدة صغرى؟</label><input type="number" id="new-item-factor" class="form-control" placeholder="مثال: 1000" /></div>
-          <div class="form-group"><label>الحد الحرج (تنبيه النقص)</label><input type="number" id="new-item-critical" class="form-control" placeholder="يُحسب بناءً على أصغر وحدة تم اختيارها" /></div>
-        </div>
-        <button class="btn btn-primary" onclick="addNewItem()">+ إضافة المادة</button>
-        <table style="margin-top: 20px;">
-          <thead><tr><th>المادة</th><th>التعبئة (المعامل)</th><th>الحد الحرج</th><th>إجراء</th></tr></thead>
-          <tbody id="settings-items-table"></tbody>
-        </table>
-      </div>
-    </section>
-  </main>
-
-  <!-- نافذة تنفيذ العمليات -->
-  <div class="modal-overlay" id="modal-op">
-    <div class="modal">
-      <div class="modal-header">
-        <span id="op-title">تنفيذ عملية</span>
-        <button class="modal-close" onclick="closeModal('modal-op')">✕</button>
-      </div>
-      <input type="hidden" id="op-type" />
-      <div class="form-group"><label>المادة</label><select id="op-item" class="form-control" onchange="updateOpUnits()"></select></div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label>الكمية المدخلة</label>
-          <div style="display: flex; gap: 8px;">
-            <input type="number" id="op-qty" class="form-control" min="0.1" step="0.1" style="flex: 2;" />
-            <select id="op-unit" class="form-control" style="flex: 1;"></select>
-          </div>
-        </div>
-        <div class="form-group"><label>المخزن</label><select id="op-wh" class="form-control"></select></div>
-      </div>
-      
-      <div class="form-group" id="op-expiry-group" style="display: none;">
-        <label>تاريخ الصلاحية (اختياري)</label>
-        <input type="date" id="op-expiry" class="form-control" />
-      </div>
-
-      <div class="form-group"><label>ملاحظات</label><input type="text" id="op-note" class="form-control" /></div>
-      <button class="btn btn-primary" style="width:100%" onclick="executeOperation()">تأكيد العملية</button>
-    </div>
-  </div>
-
-  <!-- نافذة المناقلة -->
-  <div class="modal-overlay" id="modal-transfer">
-    <div class="modal">
-      <div class="modal-header">
-        <span>🔄 مناقلة بين المخازن</span>
-        <button class="modal-close" onclick="closeModal('modal-transfer')">✕</button>
-      </div>
-      <div class="form-group"><label>المادة المراد نقلها</label><select id="tr-item" class="form-control" onchange="updateTrUnits()"></select></div>
-      <div class="form-group">
-        <label>الكمية المراد نقلها</    .page-header { padding: 20px 30px; border-bottom: 1px solid var(--border); background: var(--bg-main); position: sticky; top: 0; z-index: 50; display: flex; justify-content: space-between; align-items: center; }
-    .content-area { padding: 30px; display: none; }
-    .content-area.active { display: block; }
-
-    /* شريط الفلاتر السريعة */
-    .filter-bar { display: flex; flex-wrap: wrap; gap: 12px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 16px; align-items: flex-end; }
-    .filter-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
-    .filter-group label { font-size: 11px; color: var(--text-secondary); font-weight: bold; }
-    .filter-control { background: var(--bg-main); border: 1px solid var(--border); color: var(--text-primary); padding: 6px 10px; border-radius: 6px; font-family: var(--font); font-size: 12px; outline: none; width: 100%; }
-    .filter-control:focus { border-color: var(--accent); }
-
-    /* البطاقات والإحصاءات */
-    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px; }
-    .card-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; text-align: center; border-bottom: 3px solid var(--accent); }
-    .stat-card.danger { border-bottom-color: var(--danger); }
-    .stat-card.success { border-bottom-color: var(--success); }
-    .stat-value { font-size: 28px; font-weight: 900; margin-bottom: 5px; }
-    .stat-label { font-size: 13px; color: var(--text-secondary); }
-
-    /* الجداول والشارات */
-    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-    th { background: rgba(255,255,255,.04); color: var(--text-secondary); padding: 12px; text-align: right; font-size: 12px; }
-    td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-    tr:hover { background: rgba(255,255,255,.02); }
-    .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-    .badge.danger { background: var(--danger-dim); color: var(--danger); }
-    .badge.success { background: var(--success-dim); color: var(--success); }
-    .badge.warning { background: var(--accent-glow); color: var(--accent); }
-    .badge.info { background: var(--info-dim); color: var(--info); }
-    
-    /* شريط مستوى المخزون */
-    .stock-bar { width: 80px; height: 6px; background: rgba(255,255,255,.1); border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 8px; }
-    .stock-bar-fill { height: 100%; border-radius: 3px; display: block; }
-
-    /* النماذج والأزرار */
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 700; }
-    .form-control { width: 100%; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-primary); padding: 10px; font-family: var(--font); outline: none; }
-    .form-control:focus { border-color: var(--accent); }
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-    .btn { padding: 10px 20px; border-radius: var(--radius); border: none; cursor: pointer; font-family: var(--font); font-weight: 700; font-size: 13px; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
-    .btn-primary { background: var(--accent); color: #0F1923; }
-    .btn-success { background: var(--success-dim); color: var(--success); border: 1px solid var(--success); }
-    .btn-danger { background: var(--danger-dim); color: var(--danger); border: 1px solid var(--danger); }
-    .btn-info { background: var(--info-dim); color: var(--info); border: 1px solid var(--info); }
-    .btn-sm { padding: 6px 12px; font-size: 12px; }
-
-    /* النوافذ المنبثقة */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.2s; }
-    .modal-overlay.open { opacity: 1; pointer-events: all; }
-    .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); width: 100%; max-width: 500px; padding: 25px; transform: scale(0.95); transition: 0.2s; }
-    .modal-overlay.open .modal { transform: scale(1); }
-    .modal-header { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 18px; font-weight: 700; }
-    .modal-close { background: none; border: none; color: var(--danger); font-size: 20px; cursor: pointer; }
-    
-    /* التنبيهات */
-    #toast-container { position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-    .toast { background: var(--bg-card); border: 1px solid var(--border); padding: 12px 20px; border-radius: var(--radius); font-size: 13px; font-weight: 700; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-  </style>
-</head>
-<body>
-
-  <div id="loading-overlay">
-    <div class="spinner"></div>
-    <p style="font-weight: 600; color: var(--accent);">جاري المزامنة مع السحابة...</p>
-  </div>
-
-  <aside id="sidebar">
-    <div class="sidebar-logo">
-      <h1>📦 إدارة المخازن</h1>
-    </div>
-    <nav>
-      <div class="nav-item active" onclick="switchPage('page-dashboard', this)">📊 لوحة التحكم (الجرد)</div>
-      <div class="nav-item" onclick="switchPage('page-operations', this)">⚙️ العمليات والمناقلة</div>
-      <div class="nav-item" onclick="switchPage('page-expiries', this)">⏳ تتبع الصلاحيات</div>
-      <div class="nav-item" onclick="switchPage('page-reports', this)">📑 التقارير والسجل</div>
-      <div class="nav-item" onclick="switchPage('page-settings', this)">🔧 الإعدادات الشاملة</div>
-    </nav>
-  </aside>
-
-  <main id="main">
-    <div class="page-header">
-      <h2 id="page-title">لوحة التحكم</h2>
-    </div>
-
-    <section id="page-dashboard" class="content-area active">
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-value" id="stat-items" style="color:var(--info);">0</div>
-          <div class="stat-label">إجمالي المواد</div>
-        </div>
-        <div class="stat-card success">
-          <div class="stat-value" id="stat-ok" style="color:var(--success);">0</div>
-          <div class="stat-label">مواد وضعها ممتاز</div>
-        </div>
-        <div class="stat-card danger">
-          <div class="stat-value" id="stat-critical" style="color:var(--danger);">0</div>
-          <div class="stat-label">مواد تحت الحد الحرج 🚨</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">الجرد الشامل والحدود الحرجة</div>
-        <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>المادة</th>
-                <th>التصنيف</th>
-                <th id="th-w1">المخزن الأول</th>
-                <th id="th-w2">المخزن الثاني</th>
-                <th>الإجمالي</th>
-                <th>مؤشر المخزون</th>
-              </tr>
-            </thead>
-            <tbody id="inventory-table"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section id="page-operations" class="content-area">
-      <div class="card" style="display: flex; gap: 15px; flex-wrap: wrap;">
-        <button class="btn btn-success" onclick="openModal('modal-op', 'inbound')">➕ شراء / إضافة</button>
-        <button class="btn btn-danger" onclick="openModal('modal-op', 'outbound')">➖ صرف / بيع</button>
-        <button class="btn btn-info" onclick="openModal('modal-transfer')">🔄 مناقلة بين المخازن</button>
-        <button class="btn" style="background:var(--accent-glow); color:var(--accent);" onclick="openModal('modal-op', 'spoilage')">🗑️ تسجيل تالف</button>
-      </div>
-    </section>
-
-    <section id="page-expiries" class="content-area">
-      <div class="filter-bar">
-        <div class="filter-group">
-          <label>تصفية حسب المادة</label>
-          <select id="filter-exp-item" class="filter-control" onchange="renderExpiries()">
-            <option value="">كل المواد</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label>تصفية حسب المخزن</label>
-          <select id="filter-exp-wh" class="filter-control" onchange="renderExpiries()">
-            <option value="">كل المخازن</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">المواد ذات تواريخ الصلاحية (مرتبة من الأقرب للانتهاء)</div>
-        <table>
-          <thead>
-            <tr>
-              <th>المادة</th>
-              <th>الكمية المتوفرة</th>
-              <th>المخزن</th>
-              <th>تاريخ الصلاحية</th>
-              <th>الحالة</th>
-            </tr>
-          </thead>
-          <tbody id="expiries-table"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section id="page-reports" class="content-area">
-      <div class="card">
-        <div class="card-title">
-          <span>📈 تحليل الاستهلاك والمبيعات الذكي</span>
-          <select id="report-period" class="form-control" style="width: 180px; display: inline-block; padding: 5px 10px;" onchange="renderConsumptionReport()">
-            <option value="1">اليوم الحالي</option>
-            <option value="3">آخر 3 أيام</option>
-            <option value="7">آخر 7 أيام</option>
-            <option value="10" selected>آخر 10 أيام</option>
-            <option value="30">آخر 30 يوماً</option>
-          </select>
-        </div>
-        <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>المادة</th>
-                <th>التصنيف</th>
-                <th>إجمالي المستهلك</th>
-                <th>معدل السحب اليومي</th>
-                <th>حالة الطلب</th>
-              </tr>
-            </thead>
-            <tbody id="consumption-report-table"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">🔍 أدوات تصفية وبحث السجل المتطورة</div>
-        <div class="filter-bar">
-          <div class="filter-group">
-            <label>من تاريخ</label>
-            <input type="date" id="filter-log-date-from" class="filter-control" onchange="renderLog()" />
-          </div>
-          <div class="filter-group">
-            <label>إلى تاريخ</label>
-            <input type="date" id="filter-log-date-to" class="filter-control" onchange="renderLog()" />
-          </div>
-          <div class="filter-group">
-            <label>نوع الحركة</label>
-            <select id="filter-log-type" class="filter-control" onchange="renderLog()">
-              <option value="">كل الحركات</option>
-              <option value="inbound">➕ إضافة / شراء</option>
-              <option value="outbound">➖ صرف / بيع</option>
-              <option value="transfer">🔄 مناقلة</option>
-              <option value="spoilage">🗑️ تالف</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>المادة</label>
-            <select id="filter-log-item" class="filter-control" onchange="renderLog()">
-              <option value="">كل المواد</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>المخزن</label>
-            <select id="filter-log-wh" class="filter-control" onchange="renderLog()">
-              <option value="">كل المخازن</option>
-            </select>
-          </div>
-          <button class="btn btn-danger btn-sm" onclick="clearLogFilters()" style="height: 32px;">❌ إعادة تعيين</button>
-        </div>
-
-        <div class="card-title" style="margin-top: 20px;">سجل الحركات المتقدم</div>
-        <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>التاريخ والوقت</th>
-                <th>العملية</th>
-                <th>المادة</th>
-                <th>الكمية المدخلة</th>
-                <th>المخزن</th>
-                <th>ملاحظات</th>
-              </tr>
-            </thead>
-            <tbody id="log-table"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section id="page-settings" class="content-area">
-      <div class="form-grid">
-        <div class="card">
-          <div class="card-title">🏭 أسماء المخازن</div>
-          <div class="form-group"><label>المخزن الأول</label><input type="text" id="set-w1" class="form-control" /></div>
-          <div class="form-group"><label>المخزن الثاني</label><input type="text" id="set-w2" class="form-control" /></div>
-          <button class="btn btn-primary" onclick="saveWarehouses()">💾 حفظ المخازن</button>
-        </div>
-
-        <div class="card">
-          <div class="card-title">🏷️ إدارة التصنيفات</div>
-          <div class="form-group" style="display: flex; gap: 10px;">
-            <input type="text" id="new-category-name" class="form-control" placeholder="اسم التصنيف الجديد" />
-            <button class="btn btn-success" onclick="addCategory()">إضافة</button>
-          </div>
-          <table style="margin-top: 15px;">
-            <thead><tr><th>التصنيف</th><th>إجراء</th></tr></thead>
-            <tbody id="settings-categories-table"></tbody>
-          </table>
-        </div>
-
-        <div class="card">
-          <div class="card-title">📏 إدارة الوحدات</div>
-          <div class="form-group" style="display: flex; gap: 10px;">
-            <input type="text" id="new-unit-name" class="form-control" placeholder="اسم الوحدة الجديدة" />
-            <button class="btn btn-success" onclick="addUnit()">إضافة</button>
-          </div>
-          <table style="margin-top: 15px;">
-            <thead><tr><th>الوحدة</th><th>إجراء</th></tr></thead>
-            <tbody id="settings-units-table"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title"><span>🥩 إضافة وإدارة المواد والتعبئة</span></div>
-        <div class="form-grid">
-          <div class="form-group"><label>اسم المادة</label><input type="text" id="new-item-name" class="form-control" /></div>
-          <div class="form-group"><label>التصنيف</label><select id="new-item-cat" class="form-control"></select></div>
-          <div class="form-group"><label>الوحدة الكبرى (الأساسية)</label><select id="new-item-unit1" class="form-control"></select></div>
-          <div class="form-group"><label>الوحدة الصغرى (التعبئة / اختياري)</label><select id="new-item-unit2" class="form-control" onchange="toggleFactor()"></select></div>
-          <div class="form-group" id="factor-group" style="display: none;"><label>الوحدة الكبرى تحتوي على كم وحدة صغرى؟</label><input type="number" id="new-item-factor" class="form-control" placeholder="مثال: 1000" /></div>
-          <div class="form-group"><label>الحد الحرج (تنبيه النقص)</label><input type="number" id="new-item-critical" class="form-control" placeholder="يُحسب بناءً على أصغر وحدة تم اختيارها" /></div>
-        </div>
-        <button class="btn btn-primary" onclick="addNewItem()">+ إضافة المادة</button>
-        <table style="margin-top: 20px;">
-          <thead><tr><th>المادة</th><th>التعبئة (المعامل)</th><th>الحد الحرج</th><th>إجراء</th></tr></thead>
-          <tbody id="settings-items-table"></tbody>
-        </table>
-      </div>
-    </section>
-  </main>
-
-  <!-- نافذة تنفيذ العمليات -->
-  <div class="modal-overlay" id="modal-op">
-    <div class="modal">
-      <div class="modal-header">
-        <span id="op-title">تنفيذ عملية</span>
-        <button class="modal-close" onclick="closeModal('modal-op')">✕</button>
-      </div>
-      <input type="hidden" id="op-type" />
-      <div class="form-group"><label>المادة</label><select id="op-item" class="form-control" onchange="updateOpUnits()"></select></div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label>الكمية المدخلة</label>
-          <div style="display: flex; gap: 8px;">
-            <input type="number" id="op-qty" class="form-control" min="0.1" step="0.1" style="flex: 2;" />
-            <select id="op-unit" class="form-control" style="flex: 1;"></select>
-          </div>
-        </div>
-        <div class="form-group"><label>المخزن</label><select id="op-wh" class="form-control"></select></div>
-      </div>
-      
-      <div class="form-group" id="op-expiry-group" style="display: none;">
-        <label>تاريخ الصلاحية (اختياري)</label>
-        <input type="date" id="op-expiry" class="form-control" />
-      </div>
-
-      <div class="form-group"><label>ملاحظات</label><input type="text" id="op-note" class="form-control" /></div>
-      <button class="btn btn-primary" style="width:100%" onclick="executeOperation()">تأكيد العملية</button>
-    </div>
-  </div>
-
-  <!-- نافذة المناقلة -->
-  <div class="modal-overlay" id="modal-transfer">
-    <div class="modal">
-      <div class="modal-header">
-        <span>🔄 مناقلة بين المخازن</span>
-        <button class="modal-close" onclick="closeModal('modal-transfer')">✕</button>
-      </div>
-      <div class="form-group"><label>المادة المراد نقلها</label><select id="tr-item" class="form-control" onchange="updateTrUnits()"></select></div>
-      <div class="form-group">
-        <label>الكمية المراد نقلها</label>
-        <div style="display: flex; gap: 8px;">
-              .page-header { padding: 20px 30px; border-bottom: 1px solid var(--border); background: var(--bg-main); position: sticky; top: 0; z-index: 50; display: flex; justify-content: space-between; align-items: center; }
-    .content-area { padding: 30px; display: none; }
-    .content-area.active { display: block; }
-
-    /* شريط الفلاتر السريعة */
-    .filter-bar { display: flex; flex-wrap: wrap; gap: 12px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 16px; align-items: flex-end; }
-    .filter-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
-    .filter-group label { font-size: 11px; color: var(--text-secondary); font-weight: bold; }
-    .filter-control { background: var(--bg-main); border: 1px solid var(--border); color: var(--text-primary); padding: 6px 10px; border-radius: 6px; font-family: var(--font); font-size: 12px; outline: none; width: 100%; }
-    .filter-control:focus { border-color: var(--accent); }
-
-    /* البطاقات والإحصاءات */
-    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px; }
-    .card-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; text-align: center; border-bottom: 3px solid var(--accent); }
-    .stat-card.danger { border-bottom-color: var(--danger); }
-    .stat-card.success { border-bottom-color: var(--success); }
-    .stat-value { font-size: 28px; font-weight: 900; margin-bottom: 5px; }
-    .stat-label { font-size: 13px; color: var(--text-secondary); }
-
-    /* الجداول والشارات */
-    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-    th { background: rgba(255,255,255,.04); color: var(--text-secondary); padding: 12px; text-align: right; font-size: 12px; }
-    td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-    tr:hover { background: rgba(255,255,255,.02); }
-    .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-    .badge.danger { background: var(--danger-dim); color: var(--danger); }
-    .badge.success { background: var(--success-dim); color: var(--success); }
-    .badge.warning { background: var(--accent-glow); color: var(--accent); }
-    .badge.info { background: var(--info-dim); color: var(--info); }
-    
-    /* شريط مستوى المخزون */
-    .stock-bar { width: 80px; height: 6px; background: rgba(255,255,255,.1); border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 8px; }
-    .stock-bar-fill { height: 100%; border-radius: 3px; display: block; }
-
-    /* النماذج والأزرار */
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 700; }
-    .form-control { width: 100%; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-primary); padding: 10px; font-family: var(--font); outline: none; }
-    .form-control:focus { border-color: var(--accent); }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    .btn { padding: 10px 20px; border-radius: var(--radius); border: none; cursor: pointer; font-family: var(--font); font-weight: 700; font-size: 13px; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
-    .btn-primary { background: var(--accent); color: #0F1923; }
-    .btn-success { background: var(--success-dim); color: var(--success); border: 1px solid var(--success); }
-    .btn-danger { background: var(--danger-dim); color: var(--danger); border: 1px solid var(--danger); }
-    .btn-info { background: var(--info-dim); color: var(--info); border: 1px solid var(--info); }
-    .btn-sm { padding: 6px 12px; font-size: 12px; }
-
-    /* النوافذ المنبثقة */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.2s; }
-    .modal-overlay.open { opacity: 1; pointer-events: all; }
-    .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); width: 100%; max-width: 500px; padding: 25px; transform: scale(0.95); transition: 0.2s; }
-    .modal-overlay.open .modal { transform: scale(1); }
-    .modal-header { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 18px; font-weight: 700; }
-    .modal-close { background: none; border: none; color: var(--danger); font-size: 20px; cursor: pointer; }
-    
-    /* التنبيهات */
-    #toast-container { position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-    .toast { background: var(--bg-card); border: 1px solid var(--border); padding: 12px 20px; border-radius: var(--radius); font-size: 13px; font-weight: 700; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-  </style>
-</head>
-<body>
-
-  <div id="loading-overlay">
-    <div class="spinner"></div>
-    <p style="font-weight: 600; color: var(--accent);">جاري المزامنة مع السحابة...</p>
-  </div>
-
-  <aside id="sidebar">
-    <div class="sidebar-logo">
-      <h1>📦 إدارة المخازن</h1>
-    </div>
-    <nav>
-      <div class="nav-item active" onclick="switchPage('page-dashboard', this)">📊 لوحة التحكم (الجرد)</div>
-      <div class="nav-item" onclick="switchPage('page-operations', this)">⚙️ العمليات والمناقلة</div>
-      <div class="nav-item" onclick="switchPage('page-expiries', this)">⏳ تتبع الصلاحيات</div>
-      <div class="nav-item" onclick="switchPage('page-reports', this)">📑 التقارير والسجل</div>
-      <div class="nav-item" onclick="switchPage('page-settings', this)">🔧 الإعدادات الشاملة</div>
-    </nav>
-  </aside>
-
-  <main id="main">
-    <div class="page-header">
-      <h2 id="page-title">لوحة التحكم</h2>
-    </div>
-
-    <section id="page-dashboard" class="content-area active">
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-value" id="stat-items" style="color:var(--info);">0</div>
-          <div class="stat-label">إجمالي المواد</div>
-        </div>
-        <div class="stat-card success">
-          <div class="stat-value" id="stat-ok" style="color:var(--success);">0</div>
-          <div class="stat-label">مواد وضعها ممتاز</div>
-        </div>
-        <div class="stat-card danger">
-          <div class="stat-value" id="stat-critical" style="color:var(--danger);">0</div>
-          <div class="stat-label">مواد تحت الحد الحرج 🚨</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">الجرد الشامل والحدود الحرجة</div>
-        <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>المادة</th>
-                <th>التصنيف</th>
-                <th id="th-w1">المخزن الأول</th>
-                <th id="th-w2">المخزن الثاني</th>
-                <th>الإجمالي</th>
-                <th>مؤشر المخزون</th>
-              </tr>
-            </thead>
-            <tbody id="inventory-table"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section id="page-operations" class="content-area">
-      <div class="card" style="display: flex; gap: 15px; flex-wrap: wrap;">
-        <button class="btn btn-success" onclick="openModal('modal-op', 'inbound')">➕ شراء / إضافة</button>
-        <button class="btn btn-danger" onclick="openModal('modal-op', 'outbound')">➖ صرف / بيع</button>
-        <button class="btn btn-info" onclick="openModal('modal-transfer')">🔄 مناقلة بين المخازن</button>
-        <button class="btn" style="background:var(--accent-glow); color:var(--accent);" onclick="openModal('modal-op', 'spoilage')">🗑️ تسجيل تالف</button>
-      </div>
-    </section>
-
-    <section id="page-expiries" class="content-area">
-      <div class="filter-bar">
-        <div class="filter-group">
-          <label>تصفية حسب المادة</label>
-          <select id="filter-exp-item" class="filter-control" onchange="renderExpiries()">
-            <option value="">كل المواد</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label>تصفية حسب المخزن</label>
-          <select id="filter-exp-wh" class="filter-control" onchange="renderExpiries()">
-            <option value="">كل المخازن</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">المواد ذات تواريخ الصلاحية (مرتبة من الأقرب للانتهاء)</div>
-        <table>
-          <thead>
-            <tr>
-              <th>المادة</th>
-              <th>الكمية المتوفرة</th>
-              <th>المخزن</th>
-              <th>تاريخ الصلاحية</th>
-              <th>الحالة</th>
-            </tr>
-          </thead>
-          <tbody id="expiries-table"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section id="page-reports" class="content-area">
-      <div class="card">
-        <div class="card-title">
-          <span>📈 تحليل الاستهلاك والمبيعات الذكي</span>
-          <select id="report-period" class="form-control" style="width: 180px; display: inline-block; padding: 5px 10px;" onchange="renderConsumptionReport()">
-            <option value="1">اليوم الحالي</option>
-            <option value="3">آخر 3 أيام</option>
-            <option value="7">آخر 7 أيام</option>
-            <option value="10" selected>آخر 10 أيام</option>
-            <option value="30">آخر 30 يوماً</option>
-          </select>
-        </div>
-        <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>المادة</th>
-                <th>التصنيف</th>
-                <th>إجمالي الكمية المستهلكة / المباعة</th>
-                <th>معدل السحب اليومي</th>
-                <th>حالة الطلب</th>
-              </tr>
-            </thead>
-            <tbody id="consumption-report-table"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">🔍 أدوات تصفية وبحث السجل المتطورة</div>
-        <div class="filter-bar">
-          <div class="filter-group">
-            <label>من تاريخ</label>
-            <input type="date" id="filter-log-date-from" class="filter-control" onchange="renderLog()" />
-          </div>
-          <div class="filter-group">
-            <label>إلى تاريخ</label>
-            <input type="date" id="filter-log-date-to" class="filter-control" onchange="renderLog()" />
-          </div>
-          <div class="filter-group">
-            <label>نوع الحركة</label>
-            <select id="filter-log-type" class="filter-control" onchange="renderLog()">
-              <option value="">كل الحركات</option>
-              <option value="inbound">➕ إضافة / شراء</option>
-              <option value="outbound">➖ صرف / بيع</option>
-              <option value="transfer">🔄 مناقلة</option>
-              <option value="spoilage">🗑️ تالف</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>المادة</label>
-            <select id="filter-log-item" class="filter-control" onchange="renderLog()">
-              <option value="">كل المواد</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>المخزن</label>
-            <select id="filter-log-wh" class="filter-control" onchange="renderLog()">
-              <option value="">كل المخازن</option>
-            </select>
-          </div>
-          <button class="btn btn-danger btn-sm" onclick="clearLogFilters()" style="height: 32px;">❌ إعادة تعيين</button>
-        </div>
-
-        <div class="card-title" style="margin-top: 20px;">سجل الحركات المتقدم</div>
-        <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>التاريخ والوقت</th>
-                <th>العملية</th>
-                <th>المادة</th>
-                <th>الكمية</th>
-                <th>المخزن</th>
-                <th>ملاحظات</th>
-              </tr>
-            </thead>
-            <tbody id="log-table"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section id="page-settings" class="content-area">
-      <div class="form-grid">
-        <div class="card">
-          <div class="card-title">🏭 أسماء المخازن</div>
-          <div class="form-group"><label>المخزن الأول</label><input type="text" id="set-w1" class="form-control" /></div>
-          <div class="form-group"><label>المخزن الثاني</label><input type="text" id="set-w2" class="form-control" /></div>
-          <button class="btn btn-primary" onclick="saveWarehouses()">💾 حفظ المخازن</button>
-        </div>
-
-        <div class="card">
-          <div class="card-title">🏷️ إدارة التصنيفات</div>
-          <div class="form-group" style="display: flex; gap: 10px;">
-            <input type="text" id="new-category-name" class="form-control" placeholder="اسم التصنيف الجديد" />
-            <button class="btn btn-success" onclick="addCategory()">إضافة</button>
-          </div>
-          <table style="margin-top: 15px;">
-            <thead><tr><th>التصنيف</th><th>إجراء</th></tr></thead>
-            <tbody id="settings-categories-table"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title"><span>🥩 إضافة وإدارة المواد</span></div>
-        <div class="form-grid">
-          <div class="form-group"><label>اسم المادة</label><input type="text" id="new-item-name" class="form-control" /></div>
-          <div class="form-group"><label>الحد الحرج</label><input type="number" id="new-item-critical" class="form-control" /></div>
-          <div class="form-group"><label>التصنيف</label><select id="new-item-cat" class="form-control"></select></div>
-          <div class="form-group"><label>الوحدة</label><select id="new-item-unit" class="form-control"></select></div>
-        </div>
-        <button class="btn btn-primary" onclick="addNewItem()">+ إضافة المادة</button>
-        <table style="margin-top: 20px;">
-          <thead><tr><th>المادة</th><th>الحد الحرج</th><th>إجراء</th></tr></thead>
-          <tbody id="settings-items-table"></tbody>
-        </table>
-      </div>
-    </section>
-  </main>
-
-  <div class="modal-overlay" id="modal-op">
-    <div class="modal">
-      <div class="modal-header">
-        <span id="op-title">تنفيذ عملية</span>
-        <button class="modal-close" onclick="closeModal('modal-op')">✕</button>
-      </div>
-      <input type="hidden" id="op-type" />
-      <div class="form-group"><label>المادة</label><select id="op-item" class="form-control"></select></div>
-      <div class="form-grid">
-        <div class="form-group"><label>الكمية</label><input type="number" id="op-qty" class="form-control" min="0.1" step="0.1" /></div>
-        <div class="form-group"><label>المخزن</label><select id="op-wh" class="form-control"></select></div>
-      </div>
-      
-      <div class="form-group" id="op-expiry-group" style="display: none;">
-        <label>تاريخ الصلاحية (اختياري)</label>
-        <input type="date" id="op-expiry" class="form-control" />
-      </div>
-
-      <div class="form-group"><label>ملاحظات</label><input type="text" id="op-note" class="form-control" /></div>
-      <button class="btn btn-primary" style="width:100%" onclick="executeOperation()">تأكيد العملية</button>
-    </div>
-  </div>
-
-  <div class="modal-overlay" id="modal-transfer">
-    <div class="modal">
-      <div class="modal-header">
-        <span>🔄 مناقلة بين المخازن</span>
-        <button class="modal-close" onclick="closeModal('modal-transfer')">✕</button>
-      </div>
-      <div class="form-group"><label>المادة المراد نقلها</label><select id="tr-item" class="form-control"></select></div>
-      <div class="form-group"><label>الكمية</label><input type="number" id="tr-qty" class="form-control" min="0.1" step="0.1" /></div>
-      <div class="form-grid">
-        <div class="form-group"><label>من مخزن</label><select id="tr-from" class="form-control"></select></div>
-        <div class="form-group"><label>إلى مخزن</label><select id="tr-to" class="form-control"></select></div>
-      </div>
-      <button class="btn btn-info" style="width:100%" onclick="executeTransfer()">تنفيذ المناقلة</button>
-    </div>
-  </div>
-
-  <div id="toast-container"></div>
-
-  <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw_eyiLMN3DYHX7wZtB9oB-lixKaYVQdoWHD739h_S8U0HZh_EQDz9qnuzLK7dt7kI7Cg/exec";
-    
-    function defaultData() {
-      return {
-        warehouses: { w1: 'المخزن الرئيسي', w2: 'المخزن الفرعي' },
-        units: ['كغم', 'غرام', 'لتر', 'قطعة', 'عبوة'],
-        categories: ['لحوم', 'خضروات', 'مواد جافة', 'منظفات'],
-        items: [],
-        stock: {},
-        log: []
-      };
-    }
-
-    let DB = defaultData();
-
-    async function load() {
-      document.getElementById('loading-overlay').style.display = 'flex';
-      try {
-        const response = await fetch(SCRIPT_URL);
-        const data = await response.json();
-        if(data && data.warehouses) {
-            DB = Object.assign(defaultData(), data);
-            migrateDataFormat();
+    <style>
+        :root {
+            --primary: #4338ca;
+            --primary-hover: #3730a3;
+            --secondary: #059669;
+            --secondary-hover: #047857;
+            --danger: #dc2626;
+            --danger-hover: #b91c1c;
+            --warning: #d97706;
+            --dark: #0f172a;
+            --dark-light: #1e293b;
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #334155;
+            --text-muted: #64748b;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius: 12px;
+            --transition: all 0.3s ease;
         }
-      } catch (error) {
-        const local = localStorage.getItem('db_v2');
-        if(local) {
-            DB = JSON.parse(local);
-            migrateDataFormat();
-        }
-        toast('تعذر الاتصال السحابي، جاري استخدام النسخة المحلية', 'danger');
-      } finally {
-        document.getElementById('loading-overlay').style.display = 'none';
-        initApp();
-      }
-    }
 
-    function migrateDataFormat() {
-      if(!DB.categories) DB.categories = defaultData().categories;
-      for (let id in DB.stock) {
-        ['w1', 'w2'].forEach(wh => {
-           if (typeof DB.stock[id][wh] === 'number') {
-              let oldTotal = DB.stock[id][wh];
-              DB.stock[id][wh] = { total: oldTotal, batches: [] };
-              if(oldTotal > 0) DB.stock[id][wh].batches.push({ qty: oldTotal, exp: null, ts: Date.now() });
-           }
-        });
-      }
-    }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
 
-    async function save(newLogEntry = null) {
-      localStorage.setItem('db_v2', JSON.stringify(DB));
-      try {
-        fetch(SCRIPT_URL, {
-          method: 'POST',
-          body: JSON.stringify({ db: DB, newLog: newLogEntry }),
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-        });
-      } catch (e) {}
-    }
+        /* شاشة التحميل */
+        #db-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ffffff; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .spinner { width: 50px; height: 50px; border: 5px solid #e2e8f0; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-    function initApp() {
-      updateWarehouseNames();
-      populateDropdowns();
-      renderInventory();
-      renderExpiries();
-      renderLog();
-      renderConsumptionReport();
-      renderSettingsItems();
-      renderCategoriesSettings();
-    }
-
-    function switchPage(pageId, navEl) {
-      document.querySelectorAll('.content-area').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-      document.getElementById(pageId).classList.add('active');
-      navEl.classList.add('active');
-      document.getElementById('page-title').textContent = navEl.textContent.replace(/[^\u0600-\u06FF\s]/g, '').trim();
-    }
-
-    function toast(msg, type = 'success') {
-      const el = document.createElement('div');
-      el.className = `toast`;
-      el.style.borderRight = `4px solid var(--${type})`;
-      el.innerHTML = msg;
-      document.getElementById('toast-container').appendChild(el);
-      setTimeout(() => el.remove(), 3000);
-    }
-
-    function updateWarehouseNames() {
-      document.getElementById('th-w1').textContent = DB.warehouses.w1;
-      document.getElementById('th-w2').textContent = DB.warehouses.w2;
-      document.getElementById('set-w1').value = DB.warehouses.w1;
-      document.getElementById('set-w2').value = DB.warehouses.w2;
-    }
-
-    function populateDropdowns() {
-      const whOptions = `<option value="w1">${DB.warehouses.w1}</option><option value="w2">${DB.warehouses.w2}</option>`;
-      document.getElementById('op-wh').innerHTML = whOptions;
-      document.getElementById('tr-from').innerHTML = whOptions;
-      document.getElementById('tr-to').innerHTML = whOptions;
-
-      // تحديث قوائم الفلاتر الذكية
-      const filterWhOptions = `<option value="">كل المخازن</option><option value="w1">${DB.warehouses.w1}</option><option value="w2">${DB.warehouses.w2}</option>`;
-      document.getElementById('filter-exp-wh').innerHTML = filterWhOptions;
-      document.getElementById('filter-log-wh').innerHTML = filterWhOptions;
-
-      const itemOptions = DB.items.map(i => `<option value="${i.id}">${i.name} (${i.unit})</option>`).join('');
-      document.getElementById('op-item').innerHTML = itemOptions;
-      document.getElementById('tr-item').innerHTML = itemOptions;
-
-      const filterItemOptions = `<option value="">كل المواد</option>` + DB.items.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
-      document.getElementById('filter-exp-item').innerHTML = filterItemOptions;
-      document.getElementById('filter-log-item').innerHTML = filterItemOptions;
-
-      document.getElementById('new-item-cat').innerHTML = DB.categories.map(c => `<option value="${c}">${c}</option>`).join('');
-      document.getElementById('new-item-unit').innerHTML = DB.units.map(u => `<option value="${u}">${u}</option>`).join('');
-    }
-
-    function renderInventory() {
-      const tbody = document.getElementById('inventory-table');
-      let criticalCount = 0; let okCount = 0;
-
-      tbody.innerHTML = DB.items.map(item => {
-        const s = DB.stock[item.id] || {w1:{total:0}, w2:{total:0}};
-        const total = (s.w1.total || 0) + (s.w2.total || 0);
-        const isCritical = total <= item.critical;
+        /* شريط التنقل الجانبي */
+        .sidebar { width: 280px; background: linear-gradient(180deg, var(--dark) 0%, var(--dark-light) 100%); color: white; display: flex; flex-direction: column; padding: 25px 0; transition: var(--transition); overflow-y: auto; box-shadow: 4px 0 15px rgba(0,0,0,0.1); z-index: 100; }
+        .sidebar-header { padding: 0 25px 25px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; text-align: center; }
+        .sidebar-header h2 { font-weight: 800; font-size: 1.6rem; letter-spacing: 0.5px; color: #fff; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .sidebar-header p { font-size: 0.85rem; color: #34d399; margin-top: 8px; font-weight: 700; background: rgba(52, 211, 153, 0.1); padding: 5px 10px; border-radius: 20px; display: inline-block; }
         
-        if(isCritical) criticalCount++; else okCount++;
+        .nav-btn { background: transparent; border: none; color: #94a3b8; padding: 16px 25px; text-align: right; width: 100%; font-size: 1.05rem; cursor: pointer; transition: var(--transition); border-right: 4px solid transparent; font-weight: 600; display: flex; align-items: center; gap: 12px; }
+        .nav-btn i { font-size: 1.2rem; width: 24px; text-align: center; }
+        .nav-btn:hover { color: white; background: rgba(255,255,255,0.05); padding-right: 30px; }
+        .nav-btn.active { color: white; background: rgba(79, 70, 229, 0.2); border-right-color: #818cf8; }
+        .logout-btn { margin-top: auto; color: #fca5a5; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 25px; }
+        .logout-btn:hover { color: #f87171; background: rgba(239, 68, 68, 0.1); }
 
-        const barWidth = total > 0 ? Math.min((total / (item.critical * 3)) * 100, 100) : 0;
-        const color = isCritical ? 'var(--danger)' : 'var(--success)';
-        const badge = isCritical ? `<span class="badge danger">🚨 حرج</span>` : `<span class="badge success">✅ جيد</span>`;
+        /* منطقة المحتوى */
+        .main-content { flex: 1; overflow-y: auto; padding: 40px; position: relative; scroll-behavior: smooth; }
+        .screen { display: none; animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .screen.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-        return `
-        <tr style="${isCritical ? 'background: rgba(224,80,80,0.05);' : ''}">
-          <td style="font-weight:bold;">${item.name}</td>
-          <td>${item.category}</td>
-          <td>${s.w1.total || 0}</td>
-          <td>${s.w2.total || 0}</td>
-          <td style="font-weight:900; font-size:15px; color:${color};">${total} ${item.unit}</td>
-          <td><span class="stock-bar"><span class="stock-bar-fill" style="width:${barWidth}%; background:${color};"></span></span>${badge}</td>
-        </tr>`;
-      }).join('');
-
-      document.getElementById('stat-items').textContent = DB.items.length;
-      document.getElementById('stat-critical').textContent = criticalCount;
-      document.getElementById('stat-ok').textContent = okCount;
-    }
-
-    function renderExpiries() {
-      const tbody = document.getElementById('expiries-table');
-      const filterItem = document.getElementById('filter-exp-item').value;
-      const filterWh = document.getElementById('filter-exp-wh').value;
-      let batchesList = [];
-      
-      DB.items.forEach(item => {
-        // فلتر المادة
-        if(filterItem && item.id !== filterItem) return;
-
-        ['w1', 'w2'].forEach(wh => {
-           // فلتر المخزن
-           if(filterWh && wh !== filterWh) return;
-
-           if(DB.stock[item.id] && DB.stock[item.id][wh] && DB.stock[item.id][wh].batches) {
-              DB.stock[item.id][wh].batches.forEach(b => {
-                 if(b.exp && b.qty > 0) {
-                    batchesList.push({ itemName: item.name, whName: DB.warehouses[wh], qty: b.qty, exp: b.exp, unit: item.unit });
-                 }
-              });
-           }
-        });
-      });
-
-      batchesList.sort((a,b) => new Date(a.exp) - new Date(b.exp));
-
-      tbody.innerHTML = batchesList.map(b => {
-         let days = Math.ceil((new Date(b.exp) - new Date()) / (1000*60*60*24));
-         let badge = ''; let rowStyle = '';
-         
-         if(days < 0) { badge = '<span class="badge danger">منتهية الصلاحية ❌</span>'; rowStyle='background:rgba(224,80,80,0.1)'; }
-         else if(days <= 30) { badge = `<span class="badge warning">باقي ${days} يوم ⚠️</span>`; }
-         else { badge = '<span class="badge success">صالحة ✅</span>'; }
-         
-         return `<tr style="${rowStyle}">
-           <td style="font-weight:bold;">${b.itemName}</td>
-           <td>${b.qty} ${b.unit}</td>
-           <td>${b.whName}</td>
-           <td><span style="font-weight:bold; color:var(--info)">${b.exp}</span></td>
-           <td>${badge}</td>
-         </tr>`;
-      }).join('');
-    }
-
-    function renderConsumptionReport() {
-      const periodDays = parseInt(document.getElementById('report-period').value) || 10;
-      const tbody = document.getElementById('consumption-report-table');
-      const timeLimit = Date.now() - (periodDays * 24 * 60 * 60 * 1000);
-
-      let consumptionMap = {};
-      DB.items.forEach(item => { consumptionMap[item.id] = 0; });
-
-      DB.log.forEach(log => {
-        if(log.ts >= timeLimit && (log.type === 'outbound' || log.type === 'spoilage')) {
-          if(consumptionMap[log.itemId] !== undefined) {
-            consumptionMap[log.itemId] += log.qty;
-          }
-        }
-      });
-
-      let reportData = DB.items.map(item => {
-        let totalConsumed = consumptionMap[item.id] || 0;
-        let dailyAverage = (totalConsumed / periodDays).toFixed(2);
-        return { item, totalConsumed, dailyAverage };
-      });
-
-      reportData.sort((a, b) => b.totalConsumed - a.totalConsumed);
-
-      tbody.innerHTML = reportData.map(row => {
-        let demandBadge = '<span class="badge info">سحب عادي</span>';
-        if(row.totalConsumed > 0) {
-          demandBadge = row.totalConsumed > (row.item.critical * 2) ? '<span class="badge danger">طلب عالي 🔥</span>' : '<span class="badge success">طلب مستقر</span>';
-        }
-        return `
-        <tr>
-          <td style="font-weight:bold;">${row.item.name}</td>
-          <td>${row.item.category}</td>
-          <td style="font-weight:bold; font-size:14px; color:var(--accent);">${row.totalConsumed} ${row.item.unit}</td>
-          <td>${row.dailyAverage} / يوم</td>
-          <td>${demandBadge}</td>
-        </tr>`;
-      }).join('');
-    }
-
-    function openModal(modalId, opType = null) {
-      if(opType) {
-        document.getElementById('op-type').value = opType;
-        const titles = { inbound: '➕ شراء / إضافة', outbound: '➖ صرف / بيع', spoilage: '🗑️ تسجيل تالف' };
-        document.getElementById('op-title').textContent = titles[opType];
-        document.getElementById('op-expiry-group').style.display = (opType === 'inbound') ? 'block' : 'none';
-      }
-      document.getElementById(modalId).classList.add('open');
-    }
-    
-    function closeModal(modalId) {
-      document.getElementById(modalId).classList.remove('open');
-      document.querySelectorAll('input[type="number"], input[type="text"], input[type="date"]').forEach(el => {
-        if(!el.id.startsWith('set-')) el.value = '';
-      });
-    }
-
-    function addLog(type, itemId, qty, wh, note) {
-      const item = DB.items.find(i => i.id === itemId);
-      const logEntry = { ts: Date.now(), type, itemId, itemName: item ? item.name : 'مجهول', qty, wh, whName: wh === 'مناقلة' ? 'مناقلة' : DB.warehouses[wh], note: note || '' };
-      DB.log.unshift(logEntry);
-      if (DB.log.length > 500) DB.log = DB.log.slice(0, 500);
-      save(logEntry);
-    }
-
-    function executeOperation() {
-      const type = document.getElementById('op-type').value;
-      const itemId = document.getElementById('op-item').value;
-      const qty = parseFloat(document.getElementById('op-qty').value);
-      const wh = document.getElementById('op-wh').value;
-      const exp = document.getElementById('op-expiry').value;
-      const note = document.getElementById('op-note').value;
-
-      if(!itemId || !qty || qty <= 0) return toast('تأكد من اختيار المادة والكمية', 'danger');
-
-      let stockObj = DB.stock[itemId][wh];
-
-      if(type === 'inbound') {
-        stockObj.total += qty;
-        stockObj.batches.push({ qty: qty, exp: exp || null, ts: Date.now() });
-      } 
-      else {
-        if(stockObj.total < qty) return toast('الرصيد في المخزن المحدد غير كافٍ!', 'danger');
+        /* البطاقات والنماذج */
+        .card { background: var(--card-bg); border-radius: var(--radius); padding: 30px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); margin-bottom: 30px; transition: var(--transition); }
+        .card:hover { box-shadow: var(--shadow-md); }
+        .card-header { font-size: 1.4rem; font-weight: 800; color: var(--dark); margin-bottom: 25px; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .card-header i { color: var(--primary); }
         
-        stockObj.total -= qty;
-        let remQty = qty;
+        .form-row { display: flex; gap: 25px; flex-wrap: wrap; margin-bottom: 20px; }
+        .form-group { flex: 1; min-width: 250px; position: relative; }
+        .form-group label { display: block; margin-bottom: 10px; font-weight: 700; color: var(--text-main); font-size: 0.95rem; }
+        .form-control { width: 100%; padding: 14px 18px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 1rem; transition: var(--transition); outline: none; background: #fff; color: var(--text-main); font-weight: 600; }
+        .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(67, 56, 202, 0.1); }
+        
+        /* الأزرار */
+        .btn { padding: 14px 28px; border: none; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; justify-content: center; gap: 10px; box-shadow: var(--shadow-sm); }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); box-shadow: 0 4px 12px rgba(67, 56, 202, 0.3); }
+        .btn-secondary { background: var(--secondary); color: white; }
+        .btn-secondary:hover { background: var(--secondary-hover); box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: var(--danger-hover); box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); }
+        .btn-block { width: 100%; }
+        .btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
 
-        stockObj.batches.sort((a, b) => {
-           if(a.exp && b.exp) return new Date(a.exp) - new Date(b.exp);
-           if(a.exp) return -1;
-           if(b.exp) return 1;
-           return a.ts - b.ts;
+        /* قائمة الهبوط الذكية */
+        .searchable-select { position: relative; }
+        .dropdown-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1.5px solid var(--border); border-radius: 10px; max-height: 250px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); display: none; margin-top: 5px; }
+        .dropdown-list.show { display: block; animation: fadeIn 0.2s ease-out; }
+        .dropdown-item { padding: 12px 18px; cursor: pointer; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; transition: var(--transition); }
+        .dropdown-item:hover { background: #f8fafc; padding-right: 22px; color: var(--primary); }
+        .item-info { font-size: 0.85rem; color: var(--text-muted); background: var(--bg-color); padding: 4px 8px; border-radius: 6px; }
+
+        /* شبكة المواد الاحترافية */
+        .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 25px; }
+        .item-card { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; transition: var(--transition); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow-sm); position: relative; overflow: hidden; }
+        .item-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); border-color: #818cf8; }
+        .item-card-title { font-size: 1.15rem; font-weight: 800; color: var(--dark); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .item-card-details { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 12px; border-radius: 8px; margin-top: 10px; }
+        .item-stock { font-size: 1.4rem; font-weight: 900; }
+        .stock-good { color: var(--secondary); }
+        .stock-low { color: var(--warning); }
+        .stock-zero { color: var(--danger); }
+
+        /* الجداول */
+        .table-responsive { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); background: white; box-shadow: var(--shadow-sm); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 18px; text-align: right; border-bottom: 1px solid var(--border); }
+        th { background: #f8fafc; font-weight: 800; color: var(--dark); font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        tr:hover { background: #f8fafc; }
+        
+        /* التنبيهات */
+        .alert-box { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); padding: 16px 35px; border-radius: 10px; color: white; font-weight: 700; z-index: 9999; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; gap: 10px; font-size: 1.05rem; }
+        @keyframes slideDown { from { top: -60px; opacity: 0; } to { top: 30px; opacity: 1; } }
+        .alert-success { background: linear-gradient(135deg, var(--secondary), #10b981); }
+        .alert-error { background: linear-gradient(135deg, var(--danger), #ef4444); }
+
+        /* لوحة القيادة */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-bottom: 30px; }
+        .dash-stat-card { background: white; padding: 25px; border-radius: var(--radius); border: 1px solid var(--border); display: flex; align-items: center; gap: 20px; box-shadow: var(--shadow-sm); transition: var(--transition); }
+        .dash-stat-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); }
+        .dash-icon { width: 60px; height: 60px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: white; }
+        .dash-icon.blue { background: linear-gradient(135deg, #4f46e5, #3b82f6); }
+        .dash-icon.green { background: linear-gradient(135deg, #059669, #10b981); }
+        .dash-icon.red { background: linear-gradient(135deg, #dc2626, #ef4444); }
+        .dash-info h4 { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 5px; }
+        .dash-info h2 { color: var(--dark); font-size: 1.8rem; font-weight: 800; }
+
+        .alerts-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 25px; }
+        .alert-panel { background: white; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-sm); overflow: hidden; }
+        .alert-panel-header { padding: 20px; font-weight: 800; color: white; display: flex; align-items: center; gap: 10px; }
+        .alert-panel-header.warning { background: linear-gradient(135deg, #d97706, #f59e0b); }
+        .alert-panel-header.danger { background: linear-gradient(135deg, #dc2626, #ef4444); }
+        .alert-list { list-style: none; max-height: 350px; overflow-y: auto; }
+        .alert-list li { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .alert-list li:last-child { border-bottom: none; }
+        .badge { padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 800; }
+        .badge-red { background: #fee2e2; color: #991b1b; }
+        .badge-orange { background: #fef3c7; color: #b45309; }
+
+        /* نافذة دخول المدير */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px); z-index: 2000; display: none; align-items: center; justify-content: center; }
+        .modal-card { background: white; width: 400px; padding: 40px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); text-align: center; animation: fadeIn 0.3s ease-out; }
+    </style>
+</head>
+<body>
+
+    <!-- شاشة التحميل -->
+    <div id="db-loader">
+        <div class="spinner"></div>
+        <h2 style="color:var(--dark);">جاري مزامنة النظام السحابي...</h2>
+        <p style="color:var(--text-muted); margin-top:10px;">يرجى الانتظار لحين جلب أحدث البيانات</p>
+    </div>
+
+    <!-- صندوق التنبيهات -->
+    <div id="alert-box" class="alert-box">
+        <i class="fas fa-info-circle"></i> <span id="alert-text"></span>
+    </div>
+
+    <!-- القائمة الجانبية -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-box-open"></i> إدارة المخازن</h2>
+            <p><i class="fas fa-cloud"></i> متصل بالسحابة</p>
+        </div>
+        <button class="nav-btn active" onclick="showScreen('dashboard-screen', this)"><i class="fas fa-chart-pie"></i> لوحة القيادة والتنبيهات</button>
+        <button class="nav-btn" onclick="showScreen('view-items-screen', this)"><i class="fas fa-boxes"></i> عرض وتصفح المخزون</button>
+        
+        <!-- أزرار السحب المحدثة -->
+        <button class="nav-btn" onclick="showScreen('withdraw-screen', this)"><i class="fas fa-dolly"></i> سحب مادة (منفردة)</button>
+        <button class="nav-btn" onclick="showScreen('withdraw-list-screen', this)"><i class="fas fa-list-ul"></i> سحب قائمة مواد</button>
+        
+        <button class="nav-btn" onclick="requireAuth('add-item-screen', this)"><i class="fas fa-plus-circle"></i> تعريف مادة جديدة</button>
+        <button class="nav-btn" onclick="requireAuth('edit-items-screen', this)"><i class="fas fa-edit"></i> إدارة وتعديل المواد</button>
+        <button class="nav-btn" onclick="requireAuth('add-invoice-screen', this)"><i class="fas fa-file-invoice"></i> إدخال قائمة مواد</button>
+        <button class="nav-btn" onclick="requireAuth('invoices-history-screen', this)"><i class="fas fa-history"></i> سجلات الإدخال</button>
+        <button class="nav-btn" onclick="requireAuth('reports-screen', this)"><i class="fas fa-chart-line"></i> التقارير الشاملة</button>
+        <button id="logout-btn" class="nav-btn logout-btn" onclick="logout()" style="display: none;"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</button>
+    </aside>
+
+    <main class="main-content">
+        
+        <!-- 0. شاشة لوحة القيادة -->
+        <div id="dashboard-screen" class="screen active">
+            <div class="card-header" style="border:none; padding-bottom:0;"><i class="fas fa-tachometer-alt"></i> نظرة عامة على النظام</div>
+            <div class="dashboard-grid">
+                <div class="dash-stat-card">
+                    <div class="dash-icon blue"><i class="fas fa-boxes"></i></div>
+                    <div class="dash-info">
+                        <h4>إجمالي المواد المعرفة</h4>
+                        <h2 id="dash-total-items">0</h2>
+                    </div>
+                </div>
+                <div class="dash-stat-card">
+                    <div class="dash-icon green"><i class="fas fa-arrow-down"></i></div>
+                    <div class="dash-info">
+                        <h4>حركات الإدخال</h4>
+                        <h2 id="dash-total-in">0</h2>
+                    </div>
+                </div>
+                <div class="dash-stat-card">
+                    <div class="dash-icon red"><i class="fas fa-arrow-up"></i></div>
+                    <div class="dash-info">
+                        <h4>حركات السحب</h4>
+                        <h2 id="dash-total-out">0</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alerts-section">
+                <div class="alert-panel">
+                    <div class="alert-panel-header warning">
+                        <i class="fas fa-exclamation-triangle"></i> مواد قارب مخزونها على النفاذ (أقل من 10)
+                    </div>
+                    <ul class="alert-list" id="low-stock-list"></ul>
+                </div>
+                <div class="alert-panel">
+                    <div class="alert-panel-header danger">
+                        <i class="fas fa-calendar-times"></i> مواد أوشكت على الانتهاء (خلال 30 يوماً) أو منتهية
+                    </div>
+                    <ul class="alert-list" id="expiring-list"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1. شاشة عرض وتصفح المخزون الذكية -->
+        <div id="view-items-screen" class="screen">
+            <div class="card">
+                <div class="card-header" style="justify-content: space-between;">
+                    <div><i class="fas fa-search-plus"></i> عرض وتصفح المخزون الحالي</div>
+                    <button class="btn btn-success" onclick="exportCatalogToExcel()" style="background: #10b981; color: white;"><i class="fas fa-file-excel"></i> تصدير المخزون لـ Excel</button>
+                </div>
+                
+                <div class="form-row" style="background: #f8fafc; padding: 20px; border-radius: 10px; border: 1px solid var(--border);">
+                    <div class="form-group" style="flex: 2;">
+                        <label><i class="fas fa-filter"></i> بحث ذكي عن مادة:</label>
+                        <input type="text" class="form-control" id="catalog-search" placeholder="ابحث باسم المادة أو أي حرف منها..." oninput="renderCatalog()">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-sort"></i> ترتيب حسب:</label>
+                        <select class="form-control" id="catalog-sort" onchange="renderCatalog()">
+                            <option value="alpha-asc">الأحرف الهجائية (أ -> ي)</option>
+                            <option value="alpha-desc">الأحرف الهجائية (ي -> أ)</option>
+                            <option value="stock-high">المخزون: من الأعلى للأقل</option>
+                            <option value="stock-low">المخزون: من الأقل للأعلى</option>
+                            <option value="expiry-near">تاريخ الصلاحية: الأقرب انتهاءً</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="catalog-grid" class="inventory-grid"></div>
+            </div>
+        </div>
+
+        <!-- 2. شاشة سحب مادة منفردة -->
+        <div id="withdraw-screen" class="screen">
+            <div class="card">
+                <div class="card-header"><i class="fas fa-dolly"></i> سحب مادة من المخزن (مفردة)</div>
+                <div class="form-row">
+                    <div class="form-group" style="flex: 0.3;">
+                        <label>تاريخ السحب:</label>
+                        <input type="date" class="form-control" id="withdraw-single-date">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group searchable-select">
+                        <label>اختر المادة (اكتب للبحث):</label>
+                        <input type="text" class="form-control" id="withdraw-search" placeholder="ابحث باسم المادة..." onfocus="openDropdown('withdraw')" oninput="filterDropdown('withdraw')" autocomplete="off">
+                        <input type="hidden" id="withdraw-item-id">
+                        <div class="dropdown-list" id="withdraw-dropdown"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>الكمية المسحوبة:</label>
+                        <input type="number" class="form-control" id="withdraw-qty" min="0.01" step="0.01">
+                    </div>
+                </div>
+                <button class="btn btn-danger" id="btn-withdraw" onclick="submitWithdraw()"><i class="fas fa-check-circle"></i> تأكيد السحب المستودعي</button>
+            </div>
+        </div>
+
+        <!-- 2.5 شاشة سحب قائمة مواد -->
+        <div id="withdraw-list-screen" class="screen">
+            <div class="card">
+                <div class="card-header" style="color: var(--danger);"><i class="fas fa-list-ul"></i> سحب قائمة مواد (مجمعة)</div>
+                <div class="form-row">
+                    <div class="form-group" style="flex: 0.3;">
+                        <label>تاريخ القائمة (السحب):</label>
+                        <input type="date" class="form-control" id="withdraw-list-date">
+                    </div>
+                </div>
+                
+                <div class="card" style="background: #f8fafc; box-shadow: none; border: 1px dashed var(--danger); padding: 20px;">
+                    <div class="form-row" style="margin-bottom: 0;">
+                        <div class="form-group searchable-select">
+                            <label>المادة المطلوبة:</label>
+                            <input type="text" class="form-control" id="withdraw-list-search" placeholder="ابحث لإضافة مادة..." onfocus="openDropdown('withdraw-list')" oninput="filterDropdown('withdraw-list')" autocomplete="off">
+                            <input type="hidden" id="withdraw-list-item-id">
+                            <div class="dropdown-list" id="withdraw-list-dropdown"></div>
+                        </div>
+                        <div class="form-group" style="flex: 0.5;">
+                            <label>الكمية:</label>
+                            <input type="number" class="form-control" id="withdraw-list-qty" min="0.01" step="0.01">
+                        </div>
+                        <div class="form-group" style="flex: 0.3; display: flex; align-items: flex-end;">
+                            <button class="btn btn-danger btn-block" onclick="addWithdrawDraftItem()"><i class="fas fa-plus"></i> إضافة للقائمة</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+                    <h4 style="margin-bottom: 15px; color: var(--dark);"><i class="fas fa-list-ol"></i> المواد المضافة لقائمة السحب:</h4>
+                    <div id="withdraw-draft-list-container">
+                        <div style="text-align: center; color: var(--text-muted); padding: 20px;">لم يتم إضافة مواد بعد</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 25px;">
+                    <button class="btn btn-danger" id="btn-save-withdraw-list" onclick="saveWithdrawList()"><i class="fas fa-save"></i> تأكيد سحب القائمة بالكامل</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. شاشة تعريف مادة جديدة -->
+        <div id="add-item-screen" class="screen">
+            <div class="card">
+                <div class="card-header"><i class="fas fa-plus-circle"></i> بطاقة تعريف مادة جديدة</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>اسم المادة:</label>
+                        <input type="text" class="form-control" id="new-item-name" placeholder="أدخل اسم المادة بدقة">
+                    </div>
+                    <div class="form-group">
+                        <label>تاريخ الصلاحية (إن وجد):</label>
+                        <input type="date" class="form-control" id="new-item-expiry">
+                    </div>
+                    <div class="form-group">
+                        <label>وحدة القياس:</label>
+                        <select class="form-control" id="new-item-unit">
+                            <option value="قطعة">قطعة</option>
+                            <option value="غرام">غرام</option>
+                            <option value="كيلو">كيلو</option>
+                            <option value="لتر">لتر</option>
+                            <option value="مل">مل</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="btn-add-item" onclick="addNewItem()"><i class="fas fa-save"></i> حفظ المادة في النظام</button>
+            </div>
+        </div>
+
+        <!-- 4. شاشة إدارة وتعديل المواد -->
+        <div id="edit-items-screen" class="screen">
+            <div class="card">
+                <div class="card-header"><i class="fas fa-edit"></i> إدارة وتعديل المواد</div>
+                <div class="form-row">
+                    <div class="form-group searchable-select">
+                        <label>اختر المادة المراد تعديلها:</label>
+                        <input type="text" class="form-control" id="edit-item-search" placeholder="ابحث باسم المادة..." onfocus="openDropdown('edit-item')" oninput="filterDropdown('edit-item')" autocomplete="off">
+                        <input type="hidden" id="edit-item-id">
+                        <div class="dropdown-list" id="edit-item-dropdown"></div>
+                    </div>
+                </div>
+
+                <div id="edit-item-form" style="display: none; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 30px;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>الاسم الجديد:</label>
+                            <input type="text" class="form-control" id="update-item-name">
+                        </div>
+                        <div class="form-group">
+                            <label>تاريخ الصلاحية:</label>
+                            <input type="date" class="form-control" id="update-item-expiry">
+                        </div>
+                        <div class="form-group">
+                            <label>وحدة القياس:</label>
+                            <select class="form-control" id="update-item-unit">
+                                <option value="قطعة">قطعة</option>
+                                <option value="غرام">غرام</option>
+                                <option value="كيلو">كيلو</option>
+                                <option value="لتر">لتر</option>
+                                <option value="مل">مل</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="btn-update-item" onclick="updateItemDetails()"><i class="fas fa-cloud-upload-alt"></i> حفظ التعديلات في السحابة</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. شاشة إدخال قائمة مواد -->
+        <div id="add-invoice-screen" class="screen">
+            <div class="card">
+                <div class="card-header"><i class="fas fa-file-invoice"></i> إدخال قائمة مواد (فاتورة جديدة)</div>
+                <div class="form-row">
+                    <div class="form-group" style="flex: 0.3;">
+                        <label>تاريخ الإدخال (للقائمة):</label>
+                        <input type="date" class="form-control" id="invoice-date">
+                    </div>
+                </div>
+                
+                <div class="card" style="background: #f8fafc; box-shadow: none; border: 1px dashed var(--primary); padding: 20px;">
+                    <div class="form-row" style="margin-bottom: 0;">
+                        <div class="form-group searchable-select">
+                            <label>المادة:</label>
+                            <input type="text" class="form-control" id="invoice-search" placeholder="ابحث لإضافة مادة..." onfocus="openDropdown('invoice')" oninput="filterDropdown('invoice')" autocomplete="off">
+                            <input type="hidden" id="invoice-item-id">
+                            <div class="dropdown-list" id="invoice-dropdown"></div>
+                        </div>
+                        <div class="form-group" style="flex: 0.5;">
+                            <label>الكمية:</label>
+                            <input type="number" class="form-control" id="invoice-qty" min="0.01" step="0.01">
+                        </div>
+                        <div class="form-group" style="flex: 0.3; display: flex; align-items: flex-end;">
+                            <button class="btn btn-secondary btn-block" onclick="addDraftItem()"><i class="fas fa-plus"></i> إضافة للقائمة</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+                    <h4 style="margin-bottom: 15px; color: var(--dark);"><i class="fas fa-list-ol"></i> المواد المضافة للقائمة الحالية:</h4>
+                    <div id="draft-list-container">
+                        <div style="text-align: center; color: var(--text-muted); padding: 20px;">لم يتم إضافة مواد بعد</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 25px;">
+                    <button class="btn btn-primary" id="btn-save-invoice" onclick="saveInvoice()"><i class="fas fa-save"></i> حفظ القائمة ورفعها للسحابة</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. شاشة سجلات الإدخال -->
+        <div id="invoices-history-screen" class="screen">
+            <div class="card">
+                <div class="card-header"><i class="fas fa-history"></i> سجلات وقوائم الإدخال السابقة</div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>المعرف</th>
+                                <th>تاريخ الإدخال</th>
+                                <th>العدد</th>
+                                <th>التسجيل السحابي</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoices-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- تعديل الفاتورة -->
+        <div id="edit-invoice-screen" class="screen">
+            <div class="card">
+                <div class="card-header" style="color: var(--primary);"><i class="fas fa-edit"></i> تعديل قائمة إدخال سابقة</div>
+                <input type="hidden" id="edit-invoice-id">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>تاريخ الإدخال المحدث:</label>
+                        <input type="date" class="form-control" id="edit-invoice-date">
+                    </div>
+                </div>
+                <div style="margin-top: 20px; border: 1px solid var(--border); padding: 20px; border-radius: 10px;">
+                    <h4 style="margin-bottom: 15px;">المواد ضمن هذه القائمة:</h4>
+                    <div id="edit-draft-container"></div>
+                </div>
+                <div style="margin-top: 25px; display: flex; gap: 15px;">
+                    <button class="btn btn-primary" id="btn-save-edit" onclick="saveEditedInvoice()"><i class="fas fa-cloud-upload-alt"></i> تحديث السحابة</button>
+                    <button class="btn btn-danger" onclick="cancelEditInvoice()"><i class="fas fa-times"></i> إلغاء الرجوع</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. شاشة التقارير -->
+        <div id="reports-screen" class="screen">
+            <div class="card">
+                <div class="card-header" style="justify-content: space-between;">
+                    <div><i class="fas fa-chart-line"></i> التقارير وحركة المخزون</div>
+                    <button class="btn btn-success" onclick="exportToExcel()" style="background: #10b981; color: white;"><i class="fas fa-file-excel"></i> تصدير التقرير لـ Excel</button>
+                </div>
+                
+                <div class="form-row" style="background: #f8fafc; padding: 20px; border-radius: 10px; border: 1px solid var(--border);">
+                    <div class="form-group">
+                        <label><i class="fas fa-search"></i> بحث عن مادة:</label>
+                        <input type="text" class="form-control" id="report-filter-name" placeholder="اكتب للفلترة..." onkeyup="renderReports()">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-alt"></i> من تاريخ:</label>
+                        <input type="date" class="form-control" id="report-date-from" onchange="renderReports()">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-alt"></i> إلى تاريخ:</label>
+                        <input type="date" class="form-control" id="report-date-to" onchange="renderReports()">
+                    </div>
+                </div>
+                
+                <div class="dashboard-grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 20px;">
+                    <div class="dash-stat-card" style="padding: 15px;">
+                        <div class="dash-info" style="text-align: center; width: 100%;">
+                            <h4>إجمالي الإدخالات بالفترة</h4>
+                            <h2 id="stat-in" style="color:var(--secondary)">0</h2>
+                        </div>
+                    </div>
+                    <div class="dash-stat-card" style="padding: 15px;">
+                        <div class="dash-info" style="text-align: center; width: 100%;">
+                            <h4>إجمالي السحوبات بالفترة</h4>
+                            <h2 id="stat-out" style="color:var(--danger)">0</h2>
+                        </div>
+                    </div>
+                    <div class="dash-stat-card" style="padding: 15px;">
+                        <div class="dash-info" style="text-align: center; width: 100%;">
+                            <h4>صافي الحركة</h4>
+                            <h2 id="stat-net" style="color:var(--primary)">0</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>المادة</th>
+                                <th>الصلاحية</th>
+                                <th>الوحدة</th>
+                                <th>نوع الحركة</th>
+                                <th>الكمية</th>
+                                <th>المرجع</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reports-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- نافذة تسجيل الدخول -->
+    <div id="login-modal" class="modal-overlay">
+        <div class="modal-card">
+            <i class="fas fa-lock" style="font-size: 3rem; color: var(--primary); margin-bottom: 20px;"></i>
+            <h3 style="margin-bottom: 25px; color: var(--dark);">صلاحيات المدير مطلوبة</h3>
+            <div class="form-group" style="text-align: right;">
+                <label>كلمة المرور:</label>
+                <input type="password" class="form-control" id="admin-password" placeholder="••••••••" style="text-align: center; letter-spacing: 8px; font-size: 1.5rem;">
+            </div>
+            <div style="display: flex; gap: 15px; margin-top: 25px;">
+                <button class="btn btn-primary btn-block" onclick="checkPassword()"><i class="fas fa-sign-in-alt"></i> دخول للنظام</button>
+                <button class="btn btn-danger" onclick="closeModal()">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- كود برمجة النظام + ربط Firebase (محدث ليناسب Local & GitHub) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBG2kaU_12NDd_WdZKme2-Er7EJjg9H29Q",
+            authDomain: "inventory-system-8ef06.firebaseapp.com",
+            projectId: "inventory-system-8ef06",
+            storageBucket: "inventory-system-8ef06.firebasestorage.app",
+            messagingSenderId: "554425676444",
+            appId: "1:554425676444:web:e3cbf9df6d2d423fcb3359"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let items = [];
+        let transactions = [];
+        let invoices = [];
+        let draftInvoiceItems = [];
+        let draftWithdrawItems = []; 
+        let editDraftItems = [];
+        let currentReportData = [];
+        let currentCatalogData = []; 
+
+        let isAuthenticated = false;
+        let pendingScreen = '';
+        let pendingNavBtn = null;
+        const PASSCODE = '103130';
+
+        async function loadCloudData() {
+            try {
+                const itemsSnap = await db.collection("items").get();
+                items = itemsSnap.docs.map(d => d.data());
+
+                const transSnap = await db.collection("transactions").get();
+                transactions = transSnap.docs.map(d => d.data());
+
+                const invSnap = await db.collection("invoices").get();
+                invoices = invSnap.docs.map(d => d.data());
+
+                document.getElementById('db-loader').style.display = 'none';
+                
+                document.getElementById('invoice-date').valueAsDate = new Date();
+                document.getElementById('withdraw-single-date').valueAsDate = new Date();
+                document.getElementById('withdraw-list-date').valueAsDate = new Date();
+                
+                window.renderDashboard();
+                window.renderCatalog();
+                
+            } catch (error) {
+                console.error(error);
+                document.getElementById('db-loader').innerHTML = `<h2 style="color:red;"><i class="fas fa-wifi"></i> خطأ في الاتصال بقاعدة البيانات!</h2>`;
+            }
+        }
+        
+        loadCloudData();
+
+        window.showScreen = function(screenId, navBtn = null) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            if (navBtn) {
+                document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+                navBtn.classList.add('active');
+            }
+            if(screenId === 'reports-screen') window.renderReports();
+            if(screenId === 'invoices-history-screen') window.renderInvoicesHistory();
+            if(screenId === 'dashboard-screen') window.renderDashboard();
+            if(screenId === 'view-items-screen') window.renderCatalog();
+        };
+
+        window.requireAuth = function(screenId, navBtn) {
+            if (isAuthenticated) { window.showScreen(screenId, navBtn); } 
+            else {
+                pendingScreen = screenId;
+                pendingNavBtn = navBtn;
+                document.getElementById('login-modal').style.display = 'flex';
+                document.getElementById('admin-password').value = '';
+                document.getElementById('admin-password').focus();
+            }
+        };
+
+        window.checkPassword = function() {
+            const pass = document.getElementById('admin-password').value;
+            if (pass === PASSCODE) {
+                isAuthenticated = true;
+                window.closeModal();
+                document.getElementById('logout-btn').style.display = 'flex';
+                window.showScreen(pendingScreen, pendingNavBtn);
+                showMsg('تم التحقق بنجاح، أهلاً بك', 'success');
+            } else { showMsg('كلمة المرور غير صحيحة', 'error'); }
+        };
+
+        window.closeModal = function() { document.getElementById('login-modal').style.display = 'none'; };
+        window.logout = function() {
+            isAuthenticated = false;
+            document.getElementById('logout-btn').style.display = 'none';
+            window.showScreen('dashboard-screen', document.querySelector('.sidebar .nav-btn'));
+            showMsg('تم إغلاق الجلسة بأمان', 'success');
+        };
+
+        function showMsg(msg, type) {
+            const box = document.getElementById('alert-box');
+            const icon = type === 'success' ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-exclamation-circle"></i>';
+            document.getElementById('alert-text').innerHTML = `${icon} ${msg}`;
+            box.className = 'alert-box alert-' + type;
+            box.style.display = 'flex';
+            setTimeout(() => { box.style.animation = 'slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) reverse forwards'; setTimeout(()=> {box.style.display = 'none'; box.style.animation='';}, 400); }, 3000);
+        }
+
+        window.renderCatalog = function() {
+            const searchQuery = document.getElementById('catalog-search').value.trim().toLowerCase();
+            const sortOption = document.getElementById('catalog-sort').value;
+            const grid = document.getElementById('catalog-grid');
+
+            let filtered = items.filter(item => item.name.toLowerCase().includes(searchQuery));
+
+            filtered.sort((a, b) => {
+                if (sortOption === 'alpha-asc') { return a.name.localeCompare(b.name, 'ar'); }
+                else if (sortOption === 'alpha-desc') { return b.name.localeCompare(a.name, 'ar'); }
+                else if (sortOption === 'stock-high') { return b.stock - a.stock; }
+                else if (sortOption === 'stock-low') { return a.stock - b.stock; }
+                else if (sortOption === 'expiry-near') {
+                    if (!a.expiry) return 1; if (!b.expiry) return -1;
+                    return new Date(a.expiry) - new Date(b.expiry);
+                }
+            });
+
+            currentCatalogData = filtered;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px; font-weight: bold;"><i class="fas fa-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i> لا توجد مواد تطابق كلمة البحث</div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(item => {
+                let stockClass = 'stock-good';
+                if (item.stock <= 0) stockClass = 'stock-zero';
+                else if (item.stock <= 10) stockClass = 'stock-low';
+
+                return `
+                    <div class="item-card">
+                        <div class="item-card-title">
+                            <i class="fas fa-cube" style="color: var(--primary);"></i>
+                            <span>${item.name}</span>
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">
+                            <i class="fas fa-calendar-alt"></i> الصلاحية: ${item.expiry || 'غير محددة'}
+                        </div>
+                        <div class="item-card-details">
+                            <span style="font-weight: 700; color: var(--text-main);">المخزون المتوفر:</span>
+                            <span class="item-stock ${stockClass}">${item.stock} <small style="font-size: 0.85rem; font-weight: normal;">${item.unit}</small></span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.exportCatalogToExcel = function() {
+            if(!currentCatalogData || currentCatalogData.length === 0) {
+                showMsg('لا توجد مواد لطباعتها أو تصديرها!', 'error');
+                return;
+            }
+            
+            const excelData = currentCatalogData.map(item => ({
+                "اسم المادة": item.name,
+                "الكمية المتوفرة حالياً": item.stock,
+                "وحدة القياس": item.unit,
+                "تاريخ الصلاحية": item.expiry || 'غير محددة'
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            if(!worksheet['!views']) worksheet['!views'] = [];
+            worksheet['!views'].push({ rightToLeft: true });
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "المخزون الحالي");
+            const dateStr = new Date().toISOString().split('T')[0];
+            
+            XLSX.writeFile(workbook, `جرد_المخزون_${dateStr}.xlsx`);
+            showMsg('تم تصدير المخزون المعروض إلى Excel بنجاح', 'success');
+        };
+
+        window.renderDashboard = function() {
+            document.getElementById('dash-total-items').innerText = items.length;
+            let totalIn = 0, totalOut = 0;
+            transactions.forEach(t => { if(t.type === 'add') totalIn++; else totalOut++; });
+            document.getElementById('dash-total-in').innerText = totalIn;
+            document.getElementById('dash-total-out').innerText = totalOut;
+
+            const today = new Date();
+            const thirtyDaysFromNow = new Date();
+            thirtyDaysFromNow.setDate(today.getDate() + 30);
+
+            const lowStockItems = items.filter(i => i.stock <= 10);
+            const expiringItems = items.filter(i => {
+                if(!i.expiry) return false;
+                const expDate = new Date(i.expiry);
+                return expDate <= thirtyDaysFromNow;
+            });
+
+            const lowStockList = document.getElementById('low-stock-list');
+            if(lowStockItems.length === 0) {
+                lowStockList.innerHTML = `<li style="justify-content:center; color:var(--secondary); font-weight:bold;"><i class="fas fa-check-circle"></i> المخزون ممتاز، لا توجد نواقص</li>`;
+            } else {
+                lowStockList.innerHTML = lowStockItems.map(i => `
+                    <li>
+                        <div><strong>${i.name}</strong> <br><small style="color:var(--text-muted)">${i.unit}</small></div>
+                        <span class="badge ${i.stock <= 0 ? 'badge-red' : 'badge-orange'}">${i.stock <= 0 ? 'نفدت تماماً' : `متبقي: ${i.stock}`}</span>
+                    </li>
+                `).join('');
+            }
+
+            const expiringList = document.getElementById('expiring-list');
+            if(expiringItems.length === 0) {
+                expiringList.innerHTML = `<li style="justify-content:center; color:var(--secondary); font-weight:bold;"><i class="fas fa-check-circle"></i> جميع المواد ضمن فترة الصلاحية الآمنة</li>`;
+            } else {
+                expiringList.innerHTML = expiringItems.map(i => {
+                    const isExpired = new Date(i.expiry) < today;
+                    return `
+                    <li>
+                        <div><strong>${i.name}</strong></div>
+                        <span class="badge ${isExpired ? 'badge-red' : 'badge-orange'}">${isExpired ? 'منتهية الصلاحية!' : `تاريخ: ${i.expiry}`}</span>
+                    </li>`;
+                }).join('');
+            }
+        };
+
+        window.exportToExcel = function() {
+            if(currentReportData.length === 0) { showMsg('لا توجد بيانات للتصدير!', 'error'); return; }
+            const excelData = currentReportData.map(t => ({
+                "تاريخ الحركة": t.invoiceDate,
+                "اسم المادة": t.itemName,
+                "تاريخ الصلاحية": t.itemExpiry || 'غير محدد',
+                "الوحدة": t.itemUnit,
+                "نوع الحركة": t.type === 'add' ? 'إدخال (شراء)' : 'سحب (صرف)',
+                "الكمية": t.qty,
+                "رقم المرجع (القائمة)": t.invoiceId || 'سحب مباشر'
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            if(!worksheet['!views']) worksheet['!views'] = [];
+            worksheet['!views'].push({ rightToLeft: true });
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "تقرير حركة المخزون");
+            const dateStr = new Date().toISOString().split('T')[0];
+            XLSX.writeFile(workbook, `تقرير_المخزون_${dateStr}.xlsx`);
+            showMsg('تم تصدير التقرير إلى Excel بنجاح', 'success');
+        };
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.searchable-select')) { document.querySelectorAll('.dropdown-list').forEach(list => list.classList.remove('show')); }
         });
 
-        for(let i=0; i<stockObj.batches.length; i++) {
-           if(remQty <= 0) break;
-           let b = stockObj.batches[i];
-           let deduct = Math.min(b.qty, remQty);
-           b.qty -= deduct;
-           remQty -= deduct;
-        }
-        stockObj.batches = stockObj.batches.filter(b => b.qty > 0);
-      }
+        window.openDropdown = function(type) {
+            document.getElementById(`${type}-dropdown`).classList.add('show');
+            window.filterDropdown(type);
+        };
 
-      addLog(type, itemId, qty, wh, note);
-      closeModal('modal-op');
-      initApp();
-      toast('تمت العملية بنجاح');
-    }
+        window.filterDropdown = function(type) {
+            const query = document.getElementById(`${type}-search`).value.trim().toLowerCase();
+            const listEl = document.getElementById(`${type}-dropdown`);
+            let filtered = items.filter(i => i.name.toLowerCase().includes(query));
+            filtered.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+            listEl.innerHTML = '';
+            if(filtered.length === 0) { listEl.innerHTML = '<div class="dropdown-item" style="color:var(--danger); justify-content:center;">لا توجد مواد مطابقة</div>'; return; }
+            filtered.forEach(item => {
+                const div = document.createElement('div'); div.className = 'dropdown-item';
+                div.innerHTML = `<span>${item.name}</span><span class="item-info">متوفر: ${item.stock} ${item.unit} | صلاحية: ${item.expiry || '---'}</span>`;
+                div.onclick = () => {
+                    document.getElementById(`${type}-search`).value = item.name;
+                    const hiddenIdField = document.getElementById(`${type}-item-id`);
+                    if(hiddenIdField) hiddenIdField.value = item.id;
+                    document.getElementById(`${type}-dropdown`).classList.remove('show');
 
-    function executeTransfer() {
-      const itemId = document.getElementById('tr-item').value;
-      const qty = parseFloat(document.getElementById('tr-qty').value);
-      const fromWh = document.getElementById('tr-from').value;
-      const toWh = document.getElementById('tr-to').value;
+                    if (type === 'edit-item') {
+                        document.getElementById('edit-item-form').style.display = 'block';
+                        document.getElementById('update-item-name').value = item.name;
+                        document.getElementById('update-item-expiry').value = item.expiry || '';
+                        document.getElementById('update-item-unit').value = item.unit || 'قطعة';
+                    }
+                };
+                listEl.appendChild(div);
+            });
+        };
 
-      if(fromWh === toWh) return toast('لا يمكن المناقلة لنفس المخزن', 'danger');
-      if(!qty || qty <= 0) return toast('أدخل كمية صحيحة', 'danger');
-      
-      let fromStock = DB.stock[itemId][fromWh];
-      let toStock = DB.stock[itemId][toWh];
+        window.addNewItem = async function() {
+            const name = document.getElementById('new-item-name').value.trim();
+            const expiry = document.getElementById('new-item-expiry').value;
+            const unit = document.getElementById('new-item-unit').value;
+            if (!name) { showMsg('يرجى كتابة الاسم', 'error'); return; }
+            if (items.find(i => i.name.toLowerCase() === name.toLowerCase())) { showMsg('المادة معرفة مسبقاً!', 'error'); return; }
 
-      if(fromStock.total < qty) return toast('الرصيد في المخزن المرسل غير كافٍ', 'danger');
+            const btn = document.getElementById('btn-add-item'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
-      fromStock.total -= qty;
-      toStock.total += qty;
-      
-      let remQty = qty;
-      fromStock.batches.sort((a, b) => {
-         if(a.exp && b.exp) return new Date(a.exp) - new Date(b.exp);
-         if(a.exp) return -1;
-         if(b.exp) return 1;
-         return a.ts - b.ts;
-      });
+            const newItem = { id: 'ITM-' + Date.now(), name: name, expiry: expiry, unit: unit, stock: 0 };
+            try {
+                await db.collection("items").doc(newItem.id).set(newItem);
+                items.push(newItem);
+                document.getElementById('new-item-name').value = '';
+                document.getElementById('new-item-expiry').value = '';
+                showMsg('تم حفظ المادة بنجاح', 'success');
+                window.renderDashboard();
+                window.renderCatalog();
+            } catch(e) { showMsg('حدث خطأ في الاتصال!', 'error'); }
+            
+            btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> حفظ المادة في النظام';
+        };
 
-      let transferredBatches = [];
-      for(let i=0; i<fromStock.batches.length; i++) {
-         if(remQty <= 0) break;
-         let b = fromStock.batches[i];
-         let deduct = Math.min(b.qty, remQty);
-         b.qty -= deduct;
-         remQty -= deduct;
-         transferredBatches.push({qty: deduct, exp: b.exp, ts: b.ts});
-      }
-      
-      fromStock.batches = fromStock.batches.filter(b => b.qty > 0);
-      toStock.batches.push(...transferredBatches);
-      
-      addLog('transfer', itemId, qty, 'مناقلة', `من ${DB.warehouses[fromWh]} إلى ${DB.warehouses[toWh]}`);
-      closeModal('modal-transfer');
-      initApp();
-      toast('تمت المناقلة بنجاح', 'info');
-    }
+        window.updateItemDetails = async function() {
+            const id = document.getElementById('edit-item-id').value;
+            const newName = document.getElementById('update-item-name').value.trim();
+            const newExpiry = document.getElementById('update-item-expiry').value;
+            const newUnit = document.getElementById('update-item-unit').value;
 
-    // تعديل كود عرض السجل ليتوافق مع نظام الفلاتر المتعددة والمترابطة
-    function renderLog() {
-      const types = { inbound: '➕ إضافة', outbound: '➖ صرف', spoilage: '🗑️ تالف', transfer: '🔄 مناقلة' };
-      const colors = { inbound: 'success', outbound: 'danger', spoilage: 'warning', transfer: 'info' };
-      
-      // جلب قيم الفلاتر الحالية
-      const dateFrom = document.getElementById('filter-log-date-from').value;
-      const dateTo = document.getElementById('filter-log-date-to').value;
-      const filterType = document.getElementById('filter-log-type').value;
-      const filterItem = document.getElementById('filter-log-item').value;
-      const filterWh = document.getElementById('filter-log-wh').value;
+            if (!id || !newName) { showMsg('يرجى اختيار مادة وإدخال الاسم', 'error'); return; }
+            const btn = document.getElementById('btn-update-item'); btn.disabled = true;
 
-      // تصفية المصفوفة بناءً على الفلاتر النشطة
-      const filteredLog = DB.log.filter(log => {
-         // فلتر تاريخ البدء
-         if(dateFrom && new Date(log.ts) < new Date(dateFrom + 'T00:00:00')) return false;
-         // فلتر تاريخ الانتهاء
-         if(dateTo && new Date(log.ts) > new Date(dateTo + 'T23:59:59')) return false;
-         // فلتر نوع الحركة
-         if(filterType && log.type !== filterType) return false;
-         // فلتر المادة
-         if(filterItem && log.itemId !== filterItem) return false;
-         // فلتر المخزن
-         if(filterWh && log.wh !== filterWh && log.type !== 'transfer') return false; 
-         // في حالة المناقلة، يتم تمريرها إلا إذا حددنا مخزناً ولم تكن تابعة له (ملاحظة: المناقلة تخص مخزنين)
-         
-         return true;
-      });
+            try {
+                await db.collection("items").doc(id).update({ name: newName, expiry: newExpiry, unit: newUnit });
+                const itemIndex = items.findIndex(i => i.id === id);
+                if (itemIndex > -1) {
+                    items[itemIndex].name = newName; items[itemIndex].expiry = newExpiry; items[itemIndex].unit = newUnit;
+                }
+                showMsg('تم التحديث بنجاح', 'success');
+                document.getElementById('edit-item-search').value = ''; document.getElementById('edit-item-form').style.display = 'none';
+                window.renderDashboard();
+                window.renderCatalog();
+            } catch(e) { showMsg('حدث خطأ', 'error'); }
+            btn.disabled = false;
+        };
 
-      document.getElementById('log-table').innerHTML = filteredLog.map(log => {
-        const date = new Date(log.ts).toLocaleString('ar-SA');
-        return `<tr>
-          <td style="font-size:11px; color:var(--text-secondary)">${date}</td>
-          <td><span class="badge ${colors[log.type]}">${types[log.type]}</span></td>
-          <td style="font-weight:bold">${log.itemName}</td>
-          <td>${log.qty}</td>
-          <td>${log.whName}</td>
-          <td>${log.note}</td>
-        </tr>`;
-      }).join('');
-    }
+        window.submitWithdraw = async function() {
+            const id = document.getElementById('withdraw-item-id').value;
+            const qty = parseFloat(document.getElementById('withdraw-qty').value);
+            const wDate = document.getElementById('withdraw-single-date').value;
 
-    function clearLogFilters() {
-      document.getElementById('filter-log-date-from').value = '';
-      document.getElementById('filter-log-date-to').value = '';
-      document.getElementById('filter-log-type').value = '';
-      document.getElementById('filter-log-item').value = '';
-      document.getElementById('filter-log-wh').value = '';
-      renderLog();
-      toast('تمت إعادة تعيين فلاتر السجل');
-    }
+            if (!id || isNaN(qty) || qty <= 0) { showMsg('بيانات غير صحيحة', 'error'); return; }
+            if (!wDate) { showMsg('يرجى تحديد تاريخ السحب', 'error'); return; }
+            
+            const item = items.find(i => i.id === id);
+            if (item.stock < qty) { showMsg(`المخزون غير كافٍ! المتوفر: ${item.stock}`, 'error'); return; }
 
-    function saveWarehouses() {
-      DB.warehouses.w1 = document.getElementById('set-w1').value || 'المخزن الأول';
-      DB.warehouses.w2 = document.getElementById('set-w2').value || 'المخزن الثاني';
-      save(); initApp(); toast('تم حفظ أسماء المخازن بنجاح');
-    }
+            const btn = document.getElementById('btn-withdraw'); btn.disabled = true;
 
-    function renderCategoriesSettings() {
-      document.getElementById('settings-categories-table').innerHTML = DB.categories.map((cat, index) => `
-        <tr><td>${cat}</td><td><button class="btn btn-sm btn-danger" onclick="deleteCategory(${index})">حذف</button></td></tr>
-      `).join('');
-    }
+            const trx = { id: 'TRX-' + Date.now(), type: 'withdraw', itemId: id, itemName: item.name, itemUnit: item.unit, itemExpiry: item.expiry, qty: qty, date: new Date().toISOString(), invoiceDate: wDate };
 
-    function addCategory() {
-      const input = document.getElementById('new-category-name');
-      const catName = input.value.trim();
-      if(!catName || DB.categories.includes(catName)) return;
-      DB.categories.push(catName);
-      input.value = ''; save(); initApp(); toast('تمت الإضافة');
-    }
+            try {
+                const batch = db.batch();
+                item.stock -= qty;
+                batch.set(db.collection("transactions").doc(trx.id), trx);
+                batch.update(db.collection("items").doc(item.id), { stock: item.stock });
+                await batch.commit();
 
-    function deleteCategory(index) {
-      if(confirm('هل أنت متأكد من الحذف؟')) { DB.categories.splice(index, 1); save(); initApp(); }
-    }
+                transactions.push(trx);
+                document.getElementById('withdraw-search').value = ''; document.getElementById('withdraw-qty').value = '';
+                showMsg('تم السحب بنجاح', 'success');
+                window.renderDashboard();
+                window.renderCatalog();
+            } catch(e) { showMsg('خطأ في الاتصال', 'error'); item.stock += qty; }
+            btn.disabled = false;
+        };
 
-    function addNewItem() {
-      const name = document.getElementById('new-item-name').value;
-      const critical = parseFloat(document.getElementById('new-item-critical').value) || 0;
-      const cat = document.getElementById('new-item-cat').value;
-      const unit = document.getElementById('new-item-unit').value;
+        window.addWithdrawDraftItem = function() {
+            const id = document.getElementById('withdraw-list-item-id').value;
+            const qty = parseFloat(document.getElementById('withdraw-list-qty').value);
+            if (!id || isNaN(qty) || qty <= 0) { showMsg('اختر مادة وكمية صحيحة', 'error'); return; }
+            
+            const item = items.find(i => i.id === id);
+            
+            let alreadyDrafted = 0;
+            const existingIndex = draftWithdrawItems.findIndex(d => d.itemId === id);
+            if (existingIndex > -1) alreadyDrafted = draftWithdrawItems[existingIndex].qty;
 
-      if(!name) return toast('يرجى إدخال اسم المادة', 'danger');
-      
-      const id = 'item_' + Date.now();
-      DB.items.push({ id, name, unit, category: cat, critical });
-      DB.stock[id] = { w1: {total:0, batches:[]}, w2: {total:0, batches:[]} };
-      
-      document.getElementById('new-item-name').value = '';
-      document.getElementById('new-item-critical').value = '';
-      save(); initApp(); toast('تمت إضافة المادة');
-    }
+            if (item.stock < (alreadyDrafted + qty)) {
+                showMsg(`الكمية المطلوبة تتجاوز المخزون! المتبقي: ${item.stock}`, 'error');
+                return;
+            }
 
-    function renderSettingsItems() {
-      document.getElementById('settings-items-table').innerHTML = DB.items.map(item => `
-        <tr>
-          <td>${item.name} <span style="font-size:11px; color:var(--text-secondary)">(${item.category})</span></td>
-          <td><span class="badge danger">${item.critical} ${item.unit}</span></td>
-          <td><button class="btn btn-sm btn-danger" onclick="deleteItem('${item.id}')">حذف</button></td>
-        </tr>
-      `).join('');
-    }
+            if(existingIndex > -1) { draftWithdrawItems[existingIndex].qty += qty; } 
+            else { draftWithdrawItems.push({ itemId: id, itemName: item.name, itemUnit: item.unit, qty: qty }); }
+            
+            document.getElementById('withdraw-list-search').value = ''; document.getElementById('withdraw-list-qty').value = '';
+            window.renderWithdrawDraftList();
+        };
 
-    function deleteItem(id) {
-      if(confirm('هل أنت متأكد من حذف هذه المادة؟')) {
-        DB.items = DB.items.filter(i => i.id !== id);
-        delete DB.stock[id];
-        save(); initApp(); toast('تم الحذف');
-      }
-    }
+        window.removeWithdrawDraftItem = function(index) { draftWithdrawItems.splice(index, 1); window.renderWithdrawDraftList(); };
 
-    document.addEventListener('DOMContentLoaded', load);
-  </script>
+        window.renderWithdrawDraftList = function() {
+            const container = document.getElementById('withdraw-draft-list-container');
+            if (draftWithdrawItems.length === 0) { container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">لم يتم إضافة مواد بعد</div>'; return; }
+            container.innerHTML = draftWithdrawItems.map((d, index) => `<div style="display:flex; justify-content:space-between; padding:12px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; margin-bottom:10px;"><div><strong style="color:var(--danger);">${d.itemName}</strong> - ${d.qty} ${d.itemUnit}</div><div style="color:var(--danger); cursor:pointer;" onclick="removeWithdrawDraftItem(${index})"><i class="fas fa-trash"></i> حذف</div></div>`).join('');
+        };
+
+        window.saveWithdrawList = async function() {
+            const wDate = document.getElementById('withdraw-list-date').value;
+            if (draftWithdrawItems.length === 0) { showMsg('القائمة فارغة!', 'error'); return; }
+            if(!wDate) { showMsg('حدد تاريخ السحب', 'error'); return; }
+
+            const btn = document.getElementById('btn-save-withdraw-list'); btn.disabled = true;
+            const listId = 'W-LIST-' + Date.now();
+            
+            try {
+                const batch = db.batch();
+                
+                for (let d of draftWithdrawItems) {
+                    const itm = items.find(i => i.id === d.itemId);
+                    if (!itm || itm.stock < d.qty) {
+                        showMsg(`عذراً، مخزون "${d.itemName}" غير كافٍ لإتمام السحب.`, 'error');
+                        btn.disabled = false;
+                        return;
+                    }
+                }
+
+                draftWithdrawItems.forEach(d => {
+                    const itemIndex = items.findIndex(i => i.id === d.itemId);
+                    if(itemIndex > -1) {
+                        items[itemIndex].stock -= d.qty;
+                        const trxObj = { 
+                            id: 'TRX-' + Math.random().toString(36).substr(2, 9), 
+                            invoiceId: listId, 
+                            type: 'withdraw', 
+                            itemId: d.itemId, 
+                            itemName: items[itemIndex].name, 
+                            itemUnit: items[itemIndex].unit, 
+                            itemExpiry: items[itemIndex].expiry, 
+                            qty: d.qty, 
+                            date: new Date().toISOString(), 
+                            invoiceDate: wDate 
+                        };
+                        batch.set(db.collection("transactions").doc(trxObj.id), trxObj);
+                        batch.update(db.collection("items").doc(items[itemIndex].id), { stock: items[itemIndex].stock });
+                        transactions.push(trxObj);
+                    }
+                });
+                
+                await batch.commit();
+                draftWithdrawItems = [];
+                window.renderWithdrawDraftList();
+                showMsg('تم سحب القائمة بنجاح', 'success');
+                window.renderDashboard();
+                window.renderCatalog();
+            } catch(e) { showMsg('خطأ أثناء الرفع!', 'error'); } 
+            btn.disabled = false;
+        };
+
+        window.addDraftItem = function() {
+            const id = document.getElementById('invoice-item-id').value;
+            const qty = parseFloat(document.getElementById('invoice-qty').value);
+            if (!id || isNaN(qty) || qty <= 0) { showMsg('اختر مادة وكمية صحيحة', 'error'); return; }
+            const item = items.find(i => i.id === id);
+            const existingIndex = draftInvoiceItems.findIndex(d => d.itemId === id);
+            if(existingIndex > -1) { draftInvoiceItems[existingIndex].qty += qty; } 
+            else { draftInvoiceItems.push({ itemId: id, itemName: item.name, itemUnit: item.unit, qty: qty }); }
+            document.getElementById('invoice-search').value = ''; document.getElementById('invoice-qty').value = '';
+            window.renderDraftList();
+        };
+
+        window.removeDraftItem = function(index) { draftInvoiceItems.splice(index, 1); window.renderDraftList(); };
+
+        window.renderDraftList = function() {
+            const container = document.getElementById('draft-list-container');
+            if (draftInvoiceItems.length === 0) { container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">لم يتم إضافة مواد بعد</div>'; return; }
+            container.innerHTML = draftInvoiceItems.map((d, index) => `<div style="display:flex; justify-content:space-between; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; margin-bottom:10px;"><div><strong style="color:var(--secondary);">${d.itemName}</strong> - ${d.qty} ${d.itemUnit}</div><div style="color:var(--danger); cursor:pointer;" onclick="removeDraftItem(${index})"><i class="fas fa-trash"></i> حذف</div></div>`).join('');
+        };
+
+        window.saveInvoice = async function() {
+            const iDate = document.getElementById('invoice-date').value;
+            if (draftInvoiceItems.length === 0) { showMsg('القائمة فارغة!', 'error'); return; }
+            if(!iDate) { showMsg('حدد تاريخ الإدخال', 'error'); return; }
+
+            const btn = document.getElementById('btn-save-invoice'); btn.disabled = true;
+            const invoice = { id: 'INV-' + Date.now(), date: iDate, createdAt: new Date().toISOString(), items: draftInvoiceItems, itemCount: draftInvoiceItems.length };
+            
+            try {
+                const batch = db.batch();
+                batch.set(db.collection("invoices").doc(invoice.id), invoice);
+                draftInvoiceItems.forEach(d => {
+                    const itemIndex = items.findIndex(i => i.id === d.itemId);
+                    if(itemIndex > -1) {
+                        items[itemIndex].stock += d.qty;
+                        const trxObj = { id: 'TRX-' + Math.random().toString(36).substr(2, 9), invoiceId: invoice.id, type: 'add', itemId: d.itemId, itemName: items[itemIndex].name, itemUnit: items[itemIndex].unit, itemExpiry: items[itemIndex].expiry, qty: d.qty, date: new Date().toISOString(), invoiceDate: iDate };
+                        batch.set(db.collection("transactions").doc(trxObj.id), trxObj);
+                        batch.update(db.collection("items").doc(items[itemIndex].id), { stock: items[itemIndex].stock });
+                        transactions.push(trxObj);
+                    }
+                });
+                await batch.commit();
+                invoices.push(invoice);
+                draftInvoiceItems = [];
+                window.renderDraftList();
+                showMsg('تم حفظ القائمة بنجاح', 'success');
+                window.renderDashboard();
+                window.renderCatalog();
+            } catch(e) { showMsg('خطأ أثناء الرفع!', 'error'); } 
+            btn.disabled = false;
+        };
+
+        // استكمال الدوال التي كانت مفقودة سابقاً
+        window.renderInvoicesHistory = function() {
+            const tbody = document.getElementById('invoices-table-body');
+            let html = '';
+            const sortedInvoices = [...invoices].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+            sortedInvoices.forEach(inv => {
+                html += `<tr>
+                    <td><strong>${inv.id}</strong></td>
+                    <td>${inv.date}</td>
+                    <td><span class="badge badge-orange">${inv.itemCount} مواد</span></td>
+                    <td style="color:var(--text-muted)">${new Date(inv.createdAt).toLocaleString()}</td>
+                    <td>
+                        <button class="btn btn-primary" style="padding: 8px 12px; font-size: 0.85rem;" onclick="editInvoice('${inv.id}')"><i class="fas fa-edit"></i> عرض/تعديل</button>
+                    </td>
+                </tr>`;
+            });
+            tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">لا توجد سجلات إدخال</td></tr>';
+        };
+
+        window.editInvoice = function(invId) {
+            const inv = invoices.find(i => i.id === invId);
+            if(!inv) return;
+            document.getElementById('edit-invoice-id').value = inv.id;
+            document.getElementById('edit-invoice-date').value = inv.date;
+            editDraftItems = JSON.parse(JSON.stringify(inv.items));
+            window.renderEditDraftList();
+            window.showScreen('edit-invoice-screen');
+        };
+
+        window.renderEditDraftList = function() {
+            const container = document.getElementById('edit-draft-container');
+            if (editDraftItems.length === 0) { container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">القائمة فارغة</div>'; return; }
+            container.innerHTML = editDraftItems.map((d, index) => `<div style="display:flex; justify-content:space-between; padding:12px; background:#f8fafc; border:1px solid var(--border); border-radius:8px; margin-bottom:10px;"><div><strong>${d.itemName}</strong> - ${d.qty} ${d.itemUnit}</div></div>`).join('');
+        };
+
+        window.cancelEditInvoice = function() {
+            window.showScreen('invoices-history-screen');
+        };
+
+        window.saveEditedInvoice = async function() {
+            const id = document.getElementById('edit-invoice-id').value;
+            const newDate = document.getElementById('edit-invoice-date').value;
+            if(!newDate) { showMsg('حدد التاريخ', 'error'); return; }
+            
+            const btn = document.getElementById('btn-save-edit'); btn.disabled = true;
+            try {
+                const batch = db.batch();
+                batch.update(db.collection("invoices").doc(id), { date: newDate });
+                
+                const relatedTrx = transactions.filter(t => t.invoiceId === id);
+                relatedTrx.forEach(trx => {
+                    batch.update(db.collection("transactions").doc(trx.id), { invoiceDate: newDate });
+                    trx.invoiceDate = newDate; 
+                });
+
+                await batch.commit();
+                
+                const invIndex = invoices.findIndex(i => i.id === id);
+                if(invIndex > -1) invoices[invIndex].date = newDate;
+                
+                showMsg('تم التحديث بنجاح', 'success');
+                window.showScreen('invoices-history-screen');
+            } catch(e) { showMsg('حدث خطأ أثناء التحديث', 'error'); }
+            btn.disabled = false;
+        };
+
+        window.renderReports = function() {
+            const nameFilter = document.getElementById('report-filter-name').value.trim().toLowerCase();
+            const dateFrom = document.getElementById('report-date-from').value;
+            const dateTo = document.getElementById('report-date-to').value;
+            const tbody = document.getElementById('reports-table-body');
+            
+            let filtered = transactions.filter(t => t.itemName.toLowerCase().includes(nameFilter));
+            
+            if (dateFrom) filtered = filtered.filter(t => t.invoiceDate >= dateFrom);
+            if (dateTo) filtered = filtered.filter(t => t.invoiceDate <= dateTo);
+            
+            filtered.sort((a, b) => new Date(b.invoiceDate) - new Date(a.invoiceDate));
+            currentReportData = filtered;
+            
+            let inTotal = 0; let outTotal = 0;
+            
+            tbody.innerHTML = filtered.map(t => {
+                if(t.type === 'add') inTotal += t.qty;
+                else outTotal += t.qty;
+                
+                return `<tr>
+                    <td>${t.invoiceDate}</td>
+                    <td><strong>${t.itemName}</strong></td>
+                    <td>${t.itemExpiry || '-'}</td>
+                    <td>${t.itemUnit}</td>
+                    <td><span class="badge ${t.type === 'add' ? 'badge-orange' : 'badge-red'}" style="background:${t.type === 'add' ? '#dcfce7' : '#fee2e2'}; color:${t.type === 'add' ? '#166534' : '#991b1b'}">${t.type === 'add' ? 'إدخال' : 'سحب'}</span></td>
+                    <td><strong>${t.qty}</strong></td>
+                    <td style="font-size:0.85rem; color:var(--text-muted);">${t.invoiceId || 'مباشر'}</td>
+                </tr>`;
+            }).join('');
+            
+            if(filtered.length === 0) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">لا توجد حركات تطابق البحث</td></tr>`;
+            
+            document.getElementById('stat-in').innerText = inTotal;
+            document.getElementById('stat-out').innerText = outTotal;
+            document.getElementById('stat-net').innerText = inTotal - outTotal;
+        };
+    </script>
 </body>
 </html>
