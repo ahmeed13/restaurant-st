@@ -367,16 +367,16 @@
             </div>
         </div>
 
-        <!-- 4. شاشة إدارة وتعديل المواد -->
+        <!-- 4. شاشة إدارة وتعديل المواد (تم توحيد الأسماء هنا) -->
         <div id="edit-items-screen" class="screen">
             <div class="card">
                 <div class="card-header"><i class="fas fa-edit"></i> إدارة وتعديل المواد</div>
                 <div class="form-row">
                     <div class="form-group searchable-select">
                         <label>اختر المادة المراد تعديلها:</label>
-                        <input type="text" class="form-control" id="edit-item-search" placeholder="ابحث باسم المادة..." onfocus="openDropdown('edit-item')" oninput="filterDropdown('edit-item')" autocomplete="off">
+                        <input type="text" class="form-control" id="edit-search" placeholder="ابحث باسم المادة..." onfocus="openDropdown('edit')" oninput="filterDropdown('edit')" autocomplete="off">
                         <input type="hidden" id="edit-item-id">
-                        <div class="dropdown-list" id="edit-item-dropdown"></div>
+                        <div class="dropdown-list" id="edit-dropdown"></div>
                     </div>
                 </div>
 
@@ -667,19 +667,20 @@
         let pendingNavBtn = null;
         const PASSCODE = '103130';
 
+        // --- التحديث الأهم: معالج البيانات القديمة لتوليد الـ ID ---
         async function loadCloudData() {
             try {
                 const itemsSnap = await db.collection("items").get();
-                items = itemsSnap.docs.map(d => d.data());
+                items = itemsSnap.docs.map(d => { let data = d.data(); if(!data.id) data.id = d.id; return data; });
 
                 const transSnap = await db.collection("transactions").get();
-                transactions = transSnap.docs.map(d => d.data());
+                transactions = transSnap.docs.map(d => { let data = d.data(); if(!data.id) data.id = d.id; return data; });
 
                 const invSnap = await db.collection("invoices").get();
-                invoices = invSnap.docs.map(d => d.data());
+                invoices = invSnap.docs.map(d => { let data = d.data(); if(!data.id) data.id = d.id; return data; });
                 
                 const wSnap = await db.collection("withdrawals").get();
-                withdrawalsList = wSnap.docs.map(d => d.data());
+                withdrawalsList = wSnap.docs.map(d => { let data = d.data(); if(!data.id) data.id = d.id; return data; });
 
                 document.getElementById('db-loader').style.display = 'none';
                 
@@ -806,23 +807,29 @@
 
         window.openDropdown = function(type) { document.getElementById(`${type}-dropdown`).classList.add('show'); window.filterDropdown(type); };
 
+        // التحديث للتعرف على شاشة التعديل بالمسمى الصحيح "edit" فقط
         window.filterDropdown = function(type) {
             const query = document.getElementById(`${type}-search`).value.trim().toLowerCase();
             const listEl = document.getElementById(`${type}-dropdown`);
             let filtered = items.filter(i => i.name.toLowerCase().includes(query));
             filtered.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
             listEl.innerHTML = '';
+            
             if(filtered.length === 0) { listEl.innerHTML = '<div class="dropdown-item" style="color:var(--danger); justify-content:center;">لا توجد مواد مطابقة</div>'; return; }
+            
             filtered.forEach(item => {
                 const div = document.createElement('div'); div.className = 'dropdown-item';
                 div.innerHTML = `<span>${item.name}</span><span class="item-info">متوفر: ${item.stock} ${item.unit}</span>`;
                 div.onclick = () => {
                     document.getElementById(`${type}-search`).value = item.name;
-                    const hiddenIdField = document.getElementById(`${type}-item-id`) || document.getElementById(`${type}-id`);
+                    
+                    const hiddenIdField = document.getElementById(`${type}-item-id`);
                     if(hiddenIdField) hiddenIdField.value = item.id;
+                    
                     document.getElementById(`${type}-dropdown`).classList.remove('show');
 
-                    if (type === 'edit-item') {
+                    // تفعيل نموذج التعديل إذا كانت العملية تعديل المادة
+                    if (type === 'edit') {
                         document.getElementById('edit-item-form').style.display = 'block';
                         document.getElementById('update-item-name').value = item.name;
                         document.getElementById('update-item-unit').value = item.unit || 'قطعة';
@@ -863,9 +870,17 @@
                 const itemIndex = items.findIndex(i => i.id === id);
                 if (itemIndex > -1) { items[itemIndex].name = newName; items[itemIndex].unit = newUnit; }
                 showMsg('تم التحديث بنجاح', 'success');
-                document.getElementById('edit-item-search').value = ''; document.getElementById('edit-item-form').style.display = 'none';
+                
+                // تفريغ الحقول بعد الحفظ
+                document.getElementById('edit-search').value = ''; 
+                document.getElementById('edit-item-id').value = '';
+                document.getElementById('edit-item-form').style.display = 'none';
+                
                 window.renderDashboard(); window.renderCatalog();
-            } catch(e) { showMsg('حدث خطأ', 'error'); }
+            } catch(e) { 
+                showMsg('حدث خطأ في التحديث السحابي', 'error'); 
+                console.error(e); 
+            }
             btn.disabled = false;
         };
 
@@ -1013,7 +1028,6 @@
             } catch(e) { showMsg('حدث خطأ أثناء التحديث', 'error'); console.error(e); btn.disabled = false; }
         };
 
-        // --- تعديل السحب المفرد ليتوافق مع آلية القوائم ---
         window.submitWithdraw = async function() {
             const id = document.getElementById('withdraw-item-id').value;
             const qty = parseFloat(document.getElementById('withdraw-qty').value);
@@ -1027,7 +1041,6 @@
             const btn = document.getElementById('btn-withdraw'); 
             btn.disabled = true;
             
-            // إنشاء كائن قائمة سحب تحتوي على مادة واحدة فقط
             const listId = 'W-LIST-' + Date.now();
             const singleDraftItem = [{ itemId: id, itemName: item.name, itemUnit: item.unit, qty: qty }];
             
@@ -1036,20 +1049,16 @@
             try {
                 const batch = db.batch();
                 
-                // 1. حفظ العملية في مجموعة قوائم السحب
                 batch.set(db.collection("withdrawals").doc(listId), withdrawListObj);
 
-                // 2. تحديث المخزون
                 item.stock -= qty;
                 batch.update(db.collection("items").doc(item.id), { stock: item.stock });
                 
-                // 3. حفظ حركة السحب
                 const trxObj = { id: 'TRX-' + Math.random().toString(36).substr(2, 9), invoiceId: listId, type: 'withdraw', itemId: id, itemName: item.name, itemUnit: item.unit, itemExpiry: item.expiry, qty: qty, date: new Date().toISOString(), invoiceDate: wDate };
                 batch.set(db.collection("transactions").doc(trxObj.id), trxObj);
 
                 await batch.commit();
                 
-                // تحديث المصفوفات المحلية
                 withdrawalsList.push(withdrawListObj);
                 transactions.push(trxObj);
 
@@ -1060,7 +1069,6 @@
             } catch(e) { showMsg('خطأ في الاتصال بقاعدة البيانات', 'error'); item.stock += qty; }
             btn.disabled = false;
         };
-        // ------------------------------------------------
 
         window.addWithdrawDraftItem = function() {
             const id = document.getElementById('withdraw-list-item-id').value;
