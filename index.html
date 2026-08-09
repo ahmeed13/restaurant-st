@@ -67,7 +67,7 @@
         .card-header i { color: var(--primary); }
         
         .form-row { display: flex; gap: 25px; flex-wrap: wrap; margin-bottom: 20px; }
-        .form-group { flex: 1; min-width: 250px; position: relative; }
+        .form-group { flex: 1; min-width: 200px; position: relative; }
         .form-group label { display: block; margin-bottom: 10px; font-weight: 700; color: var(--text-main); font-size: 0.95rem; }
         .form-control { width: 100%; padding: 14px 18px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 1rem; transition: var(--transition); outline: none; background: #fff; color: var(--text-main); font-weight: 600; }
         .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(67, 56, 202, 0.1); }
@@ -167,14 +167,16 @@
         <button class="nav-btn active" onclick="showScreen('dashboard-screen', this)"><i class="fas fa-chart-pie"></i> لوحة القيادة والتنبيهات</button>
         <button class="nav-btn" onclick="showScreen('view-items-screen', this)"><i class="fas fa-boxes"></i> عرض وتصفح المخزون</button>
         
-        <!-- أزرار السحب المحدثة -->
         <button class="nav-btn" onclick="showScreen('withdraw-screen', this)"><i class="fas fa-dolly"></i> سحب مادة (منفردة)</button>
         <button class="nav-btn" onclick="showScreen('withdraw-list-screen', this)"><i class="fas fa-list-ul"></i> سحب قائمة مواد</button>
+        <button class="nav-btn" onclick="requireAuth('withdraw-history-screen', this)"><i class="fas fa-history"></i> سجلات وقوائم السحب</button>
         
         <button class="nav-btn" onclick="requireAuth('add-item-screen', this)"><i class="fas fa-plus-circle"></i> تعريف مادة جديدة</button>
         <button class="nav-btn" onclick="requireAuth('edit-items-screen', this)"><i class="fas fa-edit"></i> إدارة وتعديل المواد</button>
+        
         <button class="nav-btn" onclick="requireAuth('add-invoice-screen', this)"><i class="fas fa-file-invoice"></i> إدخال قائمة مواد</button>
-        <button class="nav-btn" onclick="requireAuth('invoices-history-screen', this)"><i class="fas fa-history"></i> سجلات الإدخال</button>
+        <button class="nav-btn" onclick="requireAuth('invoices-history-screen', this)"><i class="fas fa-history"></i> سجلات وقوائم الإدخال</button>
+        
         <button class="nav-btn" onclick="requireAuth('reports-screen', this)"><i class="fas fa-chart-line"></i> التقارير الشاملة</button>
         <button id="logout-btn" class="nav-btn logout-btn" onclick="logout()" style="display: none;"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</button>
     </aside>
@@ -320,6 +322,27 @@
             </div>
         </div>
 
+        <!-- 2.6 شاشة سجلات السحب للتعديل -->
+        <div id="withdraw-history-screen" class="screen">
+            <div class="card">
+                <div class="card-header"><i class="fas fa-history"></i> سجلات وقوائم السحب السابقة</div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>المعرف</th>
+                                <th>تاريخ السحب</th>
+                                <th>العدد</th>
+                                <th>التسجيل السحابي</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="withdraws-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- 3. شاشة تعريف مادة جديدة -->
         <div id="add-item-screen" class="screen">
             <div class="card">
@@ -328,10 +351,6 @@
                     <div class="form-group">
                         <label>اسم المادة:</label>
                         <input type="text" class="form-control" id="new-item-name" placeholder="أدخل اسم المادة بدقة">
-                    </div>
-                    <div class="form-group">
-                        <label>تاريخ الصلاحية (إن وجد):</label>
-                        <input type="date" class="form-control" id="new-item-expiry">
                     </div>
                     <div class="form-group">
                         <label>وحدة القياس:</label>
@@ -366,10 +385,6 @@
                         <div class="form-group">
                             <label>الاسم الجديد:</label>
                             <input type="text" class="form-control" id="update-item-name">
-                        </div>
-                        <div class="form-group">
-                            <label>تاريخ الصلاحية:</label>
-                            <input type="date" class="form-control" id="update-item-expiry">
                         </div>
                         <div class="form-group">
                             <label>وحدة القياس:</label>
@@ -407,11 +422,15 @@
                             <div class="dropdown-list" id="invoice-dropdown"></div>
                         </div>
                         <div class="form-group" style="flex: 0.5;">
+                            <label>تاريخ الصلاحية:</label>
+                            <input type="date" class="form-control" id="invoice-expiry">
+                        </div>
+                        <div class="form-group" style="flex: 0.4;">
                             <label>الكمية:</label>
                             <input type="number" class="form-control" id="invoice-qty" min="0.01" step="0.01">
                         </div>
                         <div class="form-group" style="flex: 0.3; display: flex; align-items: flex-end;">
-                            <button class="btn btn-secondary btn-block" onclick="addDraftItem()"><i class="fas fa-plus"></i> إضافة للقائمة</button>
+                            <button class="btn btn-secondary btn-block" onclick="addDraftItem()"><i class="fas fa-plus"></i> إضافة</button>
                         </div>
                     </div>
                 </div>
@@ -450,24 +469,90 @@
             </div>
         </div>
 
-        <!-- تعديل الفاتورة -->
+        <!-- 6.5 تعديل الفاتورة (قائمة الإدخال) -->
         <div id="edit-invoice-screen" class="screen">
             <div class="card">
                 <div class="card-header" style="color: var(--primary);"><i class="fas fa-edit"></i> تعديل قائمة إدخال سابقة</div>
                 <input type="hidden" id="edit-invoice-id">
+                
                 <div class="form-row">
-                    <div class="form-group">
+                    <div class="form-group" style="flex: 0.3;">
                         <label>تاريخ الإدخال المحدث:</label>
                         <input type="date" class="form-control" id="edit-invoice-date">
                     </div>
                 </div>
+
+                <div class="card" style="background: #f8fafc; box-shadow: none; border: 1px dashed var(--primary); padding: 20px;">
+                    <div class="form-row" style="margin-bottom: 0;">
+                        <div class="form-group searchable-select">
+                            <label>المادة:</label>
+                            <input type="text" class="form-control" id="edit-invoice-search" placeholder="ابحث لإضافة مادة..." onfocus="openDropdown('edit-invoice')" oninput="filterDropdown('edit-invoice')" autocomplete="off">
+                            <input type="hidden" id="edit-invoice-item-id">
+                            <div class="dropdown-list" id="edit-invoice-dropdown"></div>
+                        </div>
+                        <div class="form-group" style="flex: 0.5;">
+                            <label>تاريخ الصلاحية:</label>
+                            <input type="date" class="form-control" id="edit-invoice-expiry">
+                        </div>
+                        <div class="form-group" style="flex: 0.4;">
+                            <label>الكمية:</label>
+                            <input type="number" class="form-control" id="edit-invoice-qty" min="0.01" step="0.01">
+                        </div>
+                        <div class="form-group" style="flex: 0.3; display: flex; align-items: flex-end;">
+                            <button class="btn btn-secondary btn-block" onclick="addEditInvoiceDraftItem()"><i class="fas fa-plus"></i> إضافة</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div style="margin-top: 20px; border: 1px solid var(--border); padding: 20px; border-radius: 10px;">
                     <h4 style="margin-bottom: 15px;">المواد ضمن هذه القائمة:</h4>
                     <div id="edit-draft-container"></div>
                 </div>
                 <div style="margin-top: 25px; display: flex; gap: 15px;">
-                    <button class="btn btn-primary" id="btn-save-edit" onclick="saveEditedInvoice()"><i class="fas fa-cloud-upload-alt"></i> تحديث السحابة</button>
+                    <button class="btn btn-primary" id="btn-save-edit" onclick="saveEditedInvoice()"><i class="fas fa-cloud-upload-alt"></i> تحديث القائمة بالكامل</button>
                     <button class="btn btn-danger" onclick="cancelEditInvoice()"><i class="fas fa-times"></i> إلغاء الرجوع</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6.6 تعديل قائمة سحب -->
+        <div id="edit-withdraw-screen" class="screen">
+            <div class="card">
+                <div class="card-header" style="color: var(--danger);"><i class="fas fa-edit"></i> تعديل قائمة سحب سابقة</div>
+                <input type="hidden" id="edit-withdraw-id">
+                
+                <div class="form-row">
+                    <div class="form-group" style="flex: 0.3;">
+                        <label>تاريخ السحب المحدث:</label>
+                        <input type="date" class="form-control" id="edit-withdraw-date">
+                    </div>
+                </div>
+
+                <div class="card" style="background: #f8fafc; box-shadow: none; border: 1px dashed var(--danger); padding: 20px;">
+                    <div class="form-row" style="margin-bottom: 0;">
+                        <div class="form-group searchable-select">
+                            <label>المادة:</label>
+                            <input type="text" class="form-control" id="edit-withdraw-search" placeholder="ابحث لإضافة مادة..." onfocus="openDropdown('edit-withdraw')" oninput="filterDropdown('edit-withdraw')" autocomplete="off">
+                            <input type="hidden" id="edit-withdraw-item-id">
+                            <div class="dropdown-list" id="edit-withdraw-dropdown"></div>
+                        </div>
+                        <div class="form-group" style="flex: 0.4;">
+                            <label>الكمية:</label>
+                            <input type="number" class="form-control" id="edit-withdraw-qty" min="0.01" step="0.01">
+                        </div>
+                        <div class="form-group" style="flex: 0.3; display: flex; align-items: flex-end;">
+                            <button class="btn btn-danger btn-block" onclick="addEditWithdrawDraftItem()"><i class="fas fa-plus"></i> إضافة</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; border: 1px solid var(--border); padding: 20px; border-radius: 10px;">
+                    <h4 style="margin-bottom: 15px;">المواد المسحوبة ضمن هذه القائمة:</h4>
+                    <div id="edit-withdraw-draft-container"></div>
+                </div>
+                <div style="margin-top: 25px; display: flex; gap: 15px;">
+                    <button class="btn btn-danger" id="btn-save-withdraw-edit" onclick="saveEditedWithdraw()"><i class="fas fa-cloud-upload-alt"></i> تحديث القائمة بالكامل</button>
+                    <button class="btn btn-secondary" onclick="cancelEditWithdraw()"><i class="fas fa-times"></i> إلغاء الرجوع</button>
                 </div>
             </div>
         </div>
@@ -479,7 +564,6 @@
                     <div><i class="fas fa-chart-line"></i> التقارير وحركة المخزون</div>
                     <button class="btn btn-success" onclick="exportToExcel()" style="background: #10b981; color: white;"><i class="fas fa-file-excel"></i> تصدير التقرير لـ Excel</button>
                 </div>
-                
                 <div class="form-row" style="background: #f8fafc; padding: 20px; border-radius: 10px; border: 1px solid var(--border);">
                     <div class="form-group">
                         <label><i class="fas fa-search"></i> بحث عن مادة:</label>
@@ -494,7 +578,6 @@
                         <input type="date" class="form-control" id="report-date-to" onchange="renderReports()">
                     </div>
                 </div>
-                
                 <div class="dashboard-grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 20px;">
                     <div class="dash-stat-card" style="padding: 15px;">
                         <div class="dash-info" style="text-align: center; width: 100%;">
@@ -515,7 +598,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="table-responsive">
                     <table>
                         <thead>
@@ -552,7 +634,7 @@
         </div>
     </div>
 
-    <!-- كود برمجة النظام + ربط Firebase (محدث ليناسب Local & GitHub) -->
+    <!-- كود برمجة النظام + ربط Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 
@@ -572,9 +654,11 @@
         let items = [];
         let transactions = [];
         let invoices = [];
+        let withdrawalsList = [];
         let draftInvoiceItems = [];
         let draftWithdrawItems = []; 
         let editDraftItems = [];
+        let editWithdrawDraftItems = [];
         let currentReportData = [];
         let currentCatalogData = []; 
 
@@ -593,6 +677,9 @@
 
                 const invSnap = await db.collection("invoices").get();
                 invoices = invSnap.docs.map(d => d.data());
+                
+                const wSnap = await db.collection("withdrawals").get();
+                withdrawalsList = wSnap.docs.map(d => d.data());
 
                 document.getElementById('db-loader').style.display = 'none';
                 
@@ -620,6 +707,7 @@
             }
             if(screenId === 'reports-screen') window.renderReports();
             if(screenId === 'invoices-history-screen') window.renderInvoicesHistory();
+            if(screenId === 'withdraw-history-screen') window.renderWithdrawsHistory();
             if(screenId === 'dashboard-screen') window.renderDashboard();
             if(screenId === 'view-items-screen') window.renderCatalog();
         };
@@ -669,71 +757,33 @@
             const grid = document.getElementById('catalog-grid');
 
             let filtered = items.filter(item => item.name.toLowerCase().includes(searchQuery));
-
             filtered.sort((a, b) => {
-                if (sortOption === 'alpha-asc') { return a.name.localeCompare(b.name, 'ar'); }
-                else if (sortOption === 'alpha-desc') { return b.name.localeCompare(a.name, 'ar'); }
-                else if (sortOption === 'stock-high') { return b.stock - a.stock; }
-                else if (sortOption === 'stock-low') { return a.stock - b.stock; }
-                else if (sortOption === 'expiry-near') {
+                if (sortOption === 'alpha-asc') return a.name.localeCompare(b.name, 'ar');
+                if (sortOption === 'alpha-desc') return b.name.localeCompare(a.name, 'ar');
+                if (sortOption === 'stock-high') return b.stock - a.stock;
+                if (sortOption === 'stock-low') return a.stock - b.stock;
+                if (sortOption === 'expiry-near') {
                     if (!a.expiry) return 1; if (!b.expiry) return -1;
                     return new Date(a.expiry) - new Date(b.expiry);
                 }
             });
 
             currentCatalogData = filtered;
-
-            if (filtered.length === 0) {
-                grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px; font-weight: bold;"><i class="fas fa-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i> لا توجد مواد تطابق كلمة البحث</div>`;
-                return;
-            }
+            if (filtered.length === 0) { grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;"><i class="fas fa-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i> لا توجد مواد</div>`; return; }
 
             grid.innerHTML = filtered.map(item => {
-                let stockClass = 'stock-good';
-                if (item.stock <= 0) stockClass = 'stock-zero';
-                else if (item.stock <= 10) stockClass = 'stock-low';
-
-                return `
-                    <div class="item-card">
-                        <div class="item-card-title">
-                            <i class="fas fa-cube" style="color: var(--primary);"></i>
-                            <span>${item.name}</span>
-                        </div>
-                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">
-                            <i class="fas fa-calendar-alt"></i> الصلاحية: ${item.expiry || 'غير محددة'}
-                        </div>
-                        <div class="item-card-details">
-                            <span style="font-weight: 700; color: var(--text-main);">المخزون المتوفر:</span>
-                            <span class="item-stock ${stockClass}">${item.stock} <small style="font-size: 0.85rem; font-weight: normal;">${item.unit}</small></span>
-                        </div>
-                    </div>
-                `;
+                let stockClass = item.stock <= 0 ? 'stock-zero' : (item.stock <= 10 ? 'stock-low' : 'stock-good');
+                return `<div class="item-card"><div class="item-card-title"><i class="fas fa-cube" style="color: var(--primary);"></i><span>${item.name}</span></div><div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;"><i class="fas fa-calendar-alt"></i> الصلاحية: ${item.expiry || 'غير محددة'}</div><div class="item-card-details"><span style="font-weight: 700;">المخزون المتوفر:</span><span class="item-stock ${stockClass}">${item.stock} <small style="font-size: 0.85rem; font-weight: normal;">${item.unit}</small></span></div></div>`;
             }).join('');
         };
 
         window.exportCatalogToExcel = function() {
-            if(!currentCatalogData || currentCatalogData.length === 0) {
-                showMsg('لا توجد مواد لطباعتها أو تصديرها!', 'error');
-                return;
-            }
-            
-            const excelData = currentCatalogData.map(item => ({
-                "اسم المادة": item.name,
-                "الكمية المتوفرة حالياً": item.stock,
-                "وحدة القياس": item.unit,
-                "تاريخ الصلاحية": item.expiry || 'غير محددة'
-            }));
-
-            const worksheet = XLSX.utils.json_to_sheet(excelData);
-            if(!worksheet['!views']) worksheet['!views'] = [];
-            worksheet['!views'].push({ rightToLeft: true });
-
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "المخزون الحالي");
-            const dateStr = new Date().toISOString().split('T')[0];
-            
-            XLSX.writeFile(workbook, `جرد_المخزون_${dateStr}.xlsx`);
-            showMsg('تم تصدير المخزون المعروض إلى Excel بنجاح', 'success');
+            if(currentCatalogData.length === 0) { showMsg('لا توجد بيانات للتصدير', 'error'); return; }
+            const dataToExport = currentCatalogData.map(i => ({ 'اسم المادة': i.name, 'الكمية المتوفرة': i.stock, 'وحدة القياس': i.unit, 'تاريخ الصلاحية': i.expiry || 'غير محدد' }));
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "المخزون");
+            XLSX.writeFile(wb, "تقرير_المخزون.xlsx");
         };
 
         window.renderDashboard = function() {
@@ -744,74 +794,17 @@
             document.getElementById('dash-total-out').innerText = totalOut;
 
             const today = new Date();
-            const thirtyDaysFromNow = new Date();
-            thirtyDaysFromNow.setDate(today.getDate() + 30);
-
+            const thirtyDays = new Date(); thirtyDays.setDate(today.getDate() + 30);
             const lowStockItems = items.filter(i => i.stock <= 10);
-            const expiringItems = items.filter(i => {
-                if(!i.expiry) return false;
-                const expDate = new Date(i.expiry);
-                return expDate <= thirtyDaysFromNow;
-            });
+            const expiringItems = items.filter(i => i.expiry && new Date(i.expiry) <= thirtyDays);
 
-            const lowStockList = document.getElementById('low-stock-list');
-            if(lowStockItems.length === 0) {
-                lowStockList.innerHTML = `<li style="justify-content:center; color:var(--secondary); font-weight:bold;"><i class="fas fa-check-circle"></i> المخزون ممتاز، لا توجد نواقص</li>`;
-            } else {
-                lowStockList.innerHTML = lowStockItems.map(i => `
-                    <li>
-                        <div><strong>${i.name}</strong> <br><small style="color:var(--text-muted)">${i.unit}</small></div>
-                        <span class="badge ${i.stock <= 0 ? 'badge-red' : 'badge-orange'}">${i.stock <= 0 ? 'نفدت تماماً' : `متبقي: ${i.stock}`}</span>
-                    </li>
-                `).join('');
-            }
-
-            const expiringList = document.getElementById('expiring-list');
-            if(expiringItems.length === 0) {
-                expiringList.innerHTML = `<li style="justify-content:center; color:var(--secondary); font-weight:bold;"><i class="fas fa-check-circle"></i> جميع المواد ضمن فترة الصلاحية الآمنة</li>`;
-            } else {
-                expiringList.innerHTML = expiringItems.map(i => {
-                    const isExpired = new Date(i.expiry) < today;
-                    return `
-                    <li>
-                        <div><strong>${i.name}</strong></div>
-                        <span class="badge ${isExpired ? 'badge-red' : 'badge-orange'}">${isExpired ? 'منتهية الصلاحية!' : `تاريخ: ${i.expiry}`}</span>
-                    </li>`;
-                }).join('');
-            }
+            document.getElementById('low-stock-list').innerHTML = lowStockItems.length === 0 ? `<li style="justify-content:center; color:var(--secondary); font-weight:bold;"><i class="fas fa-check-circle"></i> المخزون ممتاز</li>` : lowStockItems.map(i => `<li><div><strong>${i.name}</strong> <br><small>${i.unit}</small></div><span class="badge ${i.stock <= 0 ? 'badge-red' : 'badge-orange'}">${i.stock <= 0 ? 'نفدت' : `متبقي: ${i.stock}`}</span></li>`).join('');
+            document.getElementById('expiring-list').innerHTML = expiringItems.length === 0 ? `<li style="justify-content:center; color:var(--secondary); font-weight:bold;"><i class="fas fa-check-circle"></i> جميع المواد آمنة</li>` : expiringItems.map(i => { const isExpired = new Date(i.expiry) < today; return `<li><div><strong>${i.name}</strong></div><span class="badge ${isExpired ? 'badge-red' : 'badge-orange'}">${isExpired ? 'منتهية الصلاحية!' : `تاريخ: ${i.expiry}`}</span></li>`; }).join('');
         };
 
-        window.exportToExcel = function() {
-            if(currentReportData.length === 0) { showMsg('لا توجد بيانات للتصدير!', 'error'); return; }
-            const excelData = currentReportData.map(t => ({
-                "تاريخ الحركة": t.invoiceDate,
-                "اسم المادة": t.itemName,
-                "تاريخ الصلاحية": t.itemExpiry || 'غير محدد',
-                "الوحدة": t.itemUnit,
-                "نوع الحركة": t.type === 'add' ? 'إدخال (شراء)' : 'سحب (صرف)',
-                "الكمية": t.qty,
-                "رقم المرجع (القائمة)": t.invoiceId || 'سحب مباشر'
-            }));
+        document.addEventListener('click', function(e) { if (!e.target.closest('.searchable-select')) { document.querySelectorAll('.dropdown-list').forEach(list => list.classList.remove('show')); } });
 
-            const worksheet = XLSX.utils.json_to_sheet(excelData);
-            if(!worksheet['!views']) worksheet['!views'] = [];
-            worksheet['!views'].push({ rightToLeft: true });
-
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "تقرير حركة المخزون");
-            const dateStr = new Date().toISOString().split('T')[0];
-            XLSX.writeFile(workbook, `تقرير_المخزون_${dateStr}.xlsx`);
-            showMsg('تم تصدير التقرير إلى Excel بنجاح', 'success');
-        };
-
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('.searchable-select')) { document.querySelectorAll('.dropdown-list').forEach(list => list.classList.remove('show')); }
-        });
-
-        window.openDropdown = function(type) {
-            document.getElementById(`${type}-dropdown`).classList.add('show');
-            window.filterDropdown(type);
-        };
+        window.openDropdown = function(type) { document.getElementById(`${type}-dropdown`).classList.add('show'); window.filterDropdown(type); };
 
         window.filterDropdown = function(type) {
             const query = document.getElementById(`${type}-search`).value.trim().toLowerCase();
@@ -822,7 +815,7 @@
             if(filtered.length === 0) { listEl.innerHTML = '<div class="dropdown-item" style="color:var(--danger); justify-content:center;">لا توجد مواد مطابقة</div>'; return; }
             filtered.forEach(item => {
                 const div = document.createElement('div'); div.className = 'dropdown-item';
-                div.innerHTML = `<span>${item.name}</span><span class="item-info">متوفر: ${item.stock} ${item.unit} | صلاحية: ${item.expiry || '---'}</span>`;
+                div.innerHTML = `<span>${item.name}</span><span class="item-info">متوفر: ${item.stock} ${item.unit}</span>`;
                 div.onclick = () => {
                     document.getElementById(`${type}-search`).value = item.name;
                     const hiddenIdField = document.getElementById(`${type}-item-id`);
@@ -832,7 +825,6 @@
                     if (type === 'edit-item') {
                         document.getElementById('edit-item-form').style.display = 'block';
                         document.getElementById('update-item-name').value = item.name;
-                        document.getElementById('update-item-expiry').value = item.expiry || '';
                         document.getElementById('update-item-unit').value = item.unit || 'قطعة';
                     }
                 };
@@ -842,173 +834,57 @@
 
         window.addNewItem = async function() {
             const name = document.getElementById('new-item-name').value.trim();
-            const expiry = document.getElementById('new-item-expiry').value;
             const unit = document.getElementById('new-item-unit').value;
             if (!name) { showMsg('يرجى كتابة الاسم', 'error'); return; }
             if (items.find(i => i.name.toLowerCase() === name.toLowerCase())) { showMsg('المادة معرفة مسبقاً!', 'error'); return; }
 
-            const btn = document.getElementById('btn-add-item'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
-
-            const newItem = { id: 'ITM-' + Date.now(), name: name, expiry: expiry, unit: unit, stock: 0 };
+            const btn = document.getElementById('btn-add-item'); btn.disabled = true;
+            const newItem = { id: 'ITM-' + Date.now(), name: name, expiry: '', unit: unit, stock: 0 };
             try {
                 await db.collection("items").doc(newItem.id).set(newItem);
                 items.push(newItem);
                 document.getElementById('new-item-name').value = '';
-                document.getElementById('new-item-expiry').value = '';
                 showMsg('تم حفظ المادة بنجاح', 'success');
-                window.renderDashboard();
-                window.renderCatalog();
+                window.renderDashboard(); window.renderCatalog();
             } catch(e) { showMsg('حدث خطأ في الاتصال!', 'error'); }
-            
-            btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> حفظ المادة في النظام';
+            btn.disabled = false;
         };
 
         window.updateItemDetails = async function() {
             const id = document.getElementById('edit-item-id').value;
             const newName = document.getElementById('update-item-name').value.trim();
-            const newExpiry = document.getElementById('update-item-expiry').value;
             const newUnit = document.getElementById('update-item-unit').value;
 
             if (!id || !newName) { showMsg('يرجى اختيار مادة وإدخال الاسم', 'error'); return; }
             const btn = document.getElementById('btn-update-item'); btn.disabled = true;
 
             try {
-                await db.collection("items").doc(id).update({ name: newName, expiry: newExpiry, unit: newUnit });
+                await db.collection("items").doc(id).update({ name: newName, unit: newUnit });
                 const itemIndex = items.findIndex(i => i.id === id);
-                if (itemIndex > -1) {
-                    items[itemIndex].name = newName; items[itemIndex].expiry = newExpiry; items[itemIndex].unit = newUnit;
-                }
+                if (itemIndex > -1) { items[itemIndex].name = newName; items[itemIndex].unit = newUnit; }
                 showMsg('تم التحديث بنجاح', 'success');
                 document.getElementById('edit-item-search').value = ''; document.getElementById('edit-item-form').style.display = 'none';
-                window.renderDashboard();
-                window.renderCatalog();
+                window.renderDashboard(); window.renderCatalog();
             } catch(e) { showMsg('حدث خطأ', 'error'); }
-            btn.disabled = false;
-        };
-
-        window.submitWithdraw = async function() {
-            const id = document.getElementById('withdraw-item-id').value;
-            const qty = parseFloat(document.getElementById('withdraw-qty').value);
-            const wDate = document.getElementById('withdraw-single-date').value;
-
-            if (!id || isNaN(qty) || qty <= 0) { showMsg('بيانات غير صحيحة', 'error'); return; }
-            if (!wDate) { showMsg('يرجى تحديد تاريخ السحب', 'error'); return; }
-            
-            const item = items.find(i => i.id === id);
-            if (item.stock < qty) { showMsg(`المخزون غير كافٍ! المتوفر: ${item.stock}`, 'error'); return; }
-
-            const btn = document.getElementById('btn-withdraw'); btn.disabled = true;
-
-            const trx = { id: 'TRX-' + Date.now(), type: 'withdraw', itemId: id, itemName: item.name, itemUnit: item.unit, itemExpiry: item.expiry, qty: qty, date: new Date().toISOString(), invoiceDate: wDate };
-
-            try {
-                const batch = db.batch();
-                item.stock -= qty;
-                batch.set(db.collection("transactions").doc(trx.id), trx);
-                batch.update(db.collection("items").doc(item.id), { stock: item.stock });
-                await batch.commit();
-
-                transactions.push(trx);
-                document.getElementById('withdraw-search').value = ''; document.getElementById('withdraw-qty').value = '';
-                showMsg('تم السحب بنجاح', 'success');
-                window.renderDashboard();
-                window.renderCatalog();
-            } catch(e) { showMsg('خطأ في الاتصال', 'error'); item.stock += qty; }
-            btn.disabled = false;
-        };
-
-        window.addWithdrawDraftItem = function() {
-            const id = document.getElementById('withdraw-list-item-id').value;
-            const qty = parseFloat(document.getElementById('withdraw-list-qty').value);
-            if (!id || isNaN(qty) || qty <= 0) { showMsg('اختر مادة وكمية صحيحة', 'error'); return; }
-            
-            const item = items.find(i => i.id === id);
-            
-            let alreadyDrafted = 0;
-            const existingIndex = draftWithdrawItems.findIndex(d => d.itemId === id);
-            if (existingIndex > -1) alreadyDrafted = draftWithdrawItems[existingIndex].qty;
-
-            if (item.stock < (alreadyDrafted + qty)) {
-                showMsg(`الكمية المطلوبة تتجاوز المخزون! المتبقي: ${item.stock}`, 'error');
-                return;
-            }
-
-            if(existingIndex > -1) { draftWithdrawItems[existingIndex].qty += qty; } 
-            else { draftWithdrawItems.push({ itemId: id, itemName: item.name, itemUnit: item.unit, qty: qty }); }
-            
-            document.getElementById('withdraw-list-search').value = ''; document.getElementById('withdraw-list-qty').value = '';
-            window.renderWithdrawDraftList();
-        };
-
-        window.removeWithdrawDraftItem = function(index) { draftWithdrawItems.splice(index, 1); window.renderWithdrawDraftList(); };
-
-        window.renderWithdrawDraftList = function() {
-            const container = document.getElementById('withdraw-draft-list-container');
-            if (draftWithdrawItems.length === 0) { container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">لم يتم إضافة مواد بعد</div>'; return; }
-            container.innerHTML = draftWithdrawItems.map((d, index) => `<div style="display:flex; justify-content:space-between; padding:12px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; margin-bottom:10px;"><div><strong style="color:var(--danger);">${d.itemName}</strong> - ${d.qty} ${d.itemUnit}</div><div style="color:var(--danger); cursor:pointer;" onclick="removeWithdrawDraftItem(${index})"><i class="fas fa-trash"></i> حذف</div></div>`).join('');
-        };
-
-        window.saveWithdrawList = async function() {
-            const wDate = document.getElementById('withdraw-list-date').value;
-            if (draftWithdrawItems.length === 0) { showMsg('القائمة فارغة!', 'error'); return; }
-            if(!wDate) { showMsg('حدد تاريخ السحب', 'error'); return; }
-
-            const btn = document.getElementById('btn-save-withdraw-list'); btn.disabled = true;
-            const listId = 'W-LIST-' + Date.now();
-            
-            try {
-                const batch = db.batch();
-                
-                for (let d of draftWithdrawItems) {
-                    const itm = items.find(i => i.id === d.itemId);
-                    if (!itm || itm.stock < d.qty) {
-                        showMsg(`عذراً، مخزون "${d.itemName}" غير كافٍ لإتمام السحب.`, 'error');
-                        btn.disabled = false;
-                        return;
-                    }
-                }
-
-                draftWithdrawItems.forEach(d => {
-                    const itemIndex = items.findIndex(i => i.id === d.itemId);
-                    if(itemIndex > -1) {
-                        items[itemIndex].stock -= d.qty;
-                        const trxObj = { 
-                            id: 'TRX-' + Math.random().toString(36).substr(2, 9), 
-                            invoiceId: listId, 
-                            type: 'withdraw', 
-                            itemId: d.itemId, 
-                            itemName: items[itemIndex].name, 
-                            itemUnit: items[itemIndex].unit, 
-                            itemExpiry: items[itemIndex].expiry, 
-                            qty: d.qty, 
-                            date: new Date().toISOString(), 
-                            invoiceDate: wDate 
-                        };
-                        batch.set(db.collection("transactions").doc(trxObj.id), trxObj);
-                        batch.update(db.collection("items").doc(items[itemIndex].id), { stock: items[itemIndex].stock });
-                        transactions.push(trxObj);
-                    }
-                });
-                
-                await batch.commit();
-                draftWithdrawItems = [];
-                window.renderWithdrawDraftList();
-                showMsg('تم سحب القائمة بنجاح', 'success');
-                window.renderDashboard();
-                window.renderCatalog();
-            } catch(e) { showMsg('خطأ أثناء الرفع!', 'error'); } 
             btn.disabled = false;
         };
 
         window.addDraftItem = function() {
             const id = document.getElementById('invoice-item-id').value;
             const qty = parseFloat(document.getElementById('invoice-qty').value);
+            const expiry = document.getElementById('invoice-expiry').value;
             if (!id || isNaN(qty) || qty <= 0) { showMsg('اختر مادة وكمية صحيحة', 'error'); return; }
+            
             const item = items.find(i => i.id === id);
             const existingIndex = draftInvoiceItems.findIndex(d => d.itemId === id);
-            if(existingIndex > -1) { draftInvoiceItems[existingIndex].qty += qty; } 
-            else { draftInvoiceItems.push({ itemId: id, itemName: item.name, itemUnit: item.unit, qty: qty }); }
-            document.getElementById('invoice-search').value = ''; document.getElementById('invoice-qty').value = '';
+            
+            if(existingIndex > -1) { 
+                draftInvoiceItems[existingIndex].qty += qty; 
+                if(expiry) draftInvoiceItems[existingIndex].expiry = expiry;
+            } else { 
+                draftInvoiceItems.push({ itemId: id, itemName: item.name, itemUnit: item.unit, qty: qty, expiry: expiry }); 
+            }
+            document.getElementById('invoice-search').value = ''; document.getElementById('invoice-qty').value = ''; document.getElementById('invoice-expiry').value = '';
             window.renderDraftList();
         };
 
@@ -1017,7 +893,7 @@
         window.renderDraftList = function() {
             const container = document.getElementById('draft-list-container');
             if (draftInvoiceItems.length === 0) { container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">لم يتم إضافة مواد بعد</div>'; return; }
-            container.innerHTML = draftInvoiceItems.map((d, index) => `<div style="display:flex; justify-content:space-between; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; margin-bottom:10px;"><div><strong style="color:var(--secondary);">${d.itemName}</strong> - ${d.qty} ${d.itemUnit}</div><div style="color:var(--danger); cursor:pointer;" onclick="removeDraftItem(${index})"><i class="fas fa-trash"></i> حذف</div></div>`).join('');
+            container.innerHTML = draftInvoiceItems.map((d, index) => `<div style="display:flex; justify-content:space-between; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; margin-bottom:10px;"><div><strong style="color:var(--secondary);">${d.itemName}</strong> - ${d.qty} ${d.itemUnit} <br><small>صلاحية: ${d.expiry || 'بدون'}</small></div><div style="color:var(--danger); cursor:pointer;" onclick="removeDraftItem(${index})"><i class="fas fa-trash"></i> حذف</div></div>`).join('');
         };
 
         window.saveInvoice = async function() {
@@ -1035,38 +911,28 @@
                     const itemIndex = items.findIndex(i => i.id === d.itemId);
                     if(itemIndex > -1) {
                         items[itemIndex].stock += d.qty;
+                        if(d.expiry) items[itemIndex].expiry = d.expiry;
+                        
                         const trxObj = { id: 'TRX-' + Math.random().toString(36).substr(2, 9), invoiceId: invoice.id, type: 'add', itemId: d.itemId, itemName: items[itemIndex].name, itemUnit: items[itemIndex].unit, itemExpiry: items[itemIndex].expiry, qty: d.qty, date: new Date().toISOString(), invoiceDate: iDate };
                         batch.set(db.collection("transactions").doc(trxObj.id), trxObj);
-                        batch.update(db.collection("items").doc(items[itemIndex].id), { stock: items[itemIndex].stock });
+                        batch.update(db.collection("items").doc(items[itemIndex].id), { stock: items[itemIndex].stock, expiry: items[itemIndex].expiry });
                         transactions.push(trxObj);
                     }
                 });
                 await batch.commit();
                 invoices.push(invoice);
-                draftInvoiceItems = [];
-                window.renderDraftList();
-                showMsg('تم حفظ القائمة بنجاح', 'success');
-                window.renderDashboard();
-                window.renderCatalog();
+                draftInvoiceItems = []; window.renderDraftList();
+                showMsg('تم حفظ القائمة بنجاح', 'success'); window.renderDashboard(); window.renderCatalog();
             } catch(e) { showMsg('خطأ أثناء الرفع!', 'error'); } 
             btn.disabled = false;
         };
 
-        // استكمال الدوال التي كانت مفقودة سابقاً
         window.renderInvoicesHistory = function() {
             const tbody = document.getElementById('invoices-table-body');
             let html = '';
             const sortedInvoices = [...invoices].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
             sortedInvoices.forEach(inv => {
-                html += `<tr>
-                    <td><strong>${inv.id}</strong></td>
-                    <td>${inv.date}</td>
-                    <td><span class="badge badge-orange">${inv.itemCount} مواد</span></td>
-                    <td style="color:var(--text-muted)">${new Date(inv.createdAt).toLocaleString()}</td>
-                    <td>
-                        <button class="btn btn-primary" style="padding: 8px 12px; font-size: 0.85rem;" onclick="editInvoice('${inv.id}')"><i class="fas fa-edit"></i> عرض/تعديل</button>
-                    </td>
-                </tr>`;
+                html += `<tr><td><strong>${inv.id}</strong></td><td>${inv.date}</td><td><span class="badge badge-orange">${inv.itemCount} مواد</span></td><td style="color:var(--text-muted)">${new Date(inv.createdAt).toLocaleString()}</td><td><button class="btn btn-primary" style="padding: 8px 12px; font-size: 0.85rem;" onclick="editInvoice('${inv.id}')"><i class="fas fa-edit"></i> تعديل</button></td></tr>`;
             });
             tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">لا توجد سجلات إدخال</td></tr>';
         };
@@ -1081,41 +947,267 @@
             window.showScreen('edit-invoice-screen');
         };
 
+        window.addEditInvoiceDraftItem = function() {
+            const id = document.getElementById('edit-invoice-item-id').value;
+            const qty = parseFloat(document.getElementById('edit-invoice-qty').value);
+            const expiry = document.getElementById('edit-invoice-expiry').value;
+            if (!id || isNaN(qty) || qty <= 0) { showMsg('اختر مادة وكمية صحيحة', 'error'); return; }
+            const item = items.find(i => i.id === id);
+            
+            const existingIndex = editDraftItems.findIndex(d => d.itemId === id);
+            if(existingIndex > -1) { 
+                editDraftItems[existingIndex].qty += qty;
+                if(expiry) editDraftItems[existingIndex].expiry = expiry;
+            } else { 
+                editDraftItems.push({ itemId: id, itemName: item.name, itemUnit: item.unit, qty: qty, expiry: expiry }); 
+            }
+            document.getElementById('edit-invoice-search').value = ''; document.getElementById('edit-invoice-qty').value = ''; document.getElementById('edit-invoice-expiry').value='';
+            window.renderEditDraftList();
+        };
+
+        window.removeEditInvoiceDraftItem = function(index) { editDraftItems.splice(index, 1); window.renderEditDraftList(); };
+
         window.renderEditDraftList = function() {
             const container = document.getElementById('edit-draft-container');
             if (editDraftItems.length === 0) { container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">القائمة فارغة</div>'; return; }
-            container.innerHTML = editDraftItems.map((d, index) => `<div style="display:flex; justify-content:space-between; padding:12px; background:#f8fafc; border:1px solid var(--border); border-radius:8px; margin-bottom:10px;"><div><strong>${d.itemName}</strong> - ${d.qty} ${d.itemUnit}</div></div>`).join('');
+            container.innerHTML = editDraftItems.map((d, index) => `<div style="display:flex; justify-content:space-between; padding:12px; background:#f8fafc; border:1px solid var(--border); border-radius:8px; margin-bottom:10px;"><div><strong>${d.itemName}</strong> - ${d.qty} ${d.itemUnit} <br><small>صلاحية: ${d.expiry||'بدون'}</small></div><div style="color:var(--danger); cursor:pointer;" onclick="removeEditInvoiceDraftItem(${index})"><i class="fas fa-trash"></i> حذف</div></div>`).join('');
         };
 
-        window.cancelEditInvoice = function() {
-            window.showScreen('invoices-history-screen');
-        };
+        window.cancelEditInvoice = function() { window.showScreen('invoices-history-screen'); };
 
         window.saveEditedInvoice = async function() {
             const id = document.getElementById('edit-invoice-id').value;
             const newDate = document.getElementById('edit-invoice-date').value;
-            if(!newDate) { showMsg('حدد التاريخ', 'error'); return; }
-            
+            if(!newDate || editDraftItems.length === 0) { showMsg('بيانات غير مكتملة', 'error'); return; }
             const btn = document.getElementById('btn-save-edit'); btn.disabled = true;
+
             try {
                 const batch = db.batch();
-                batch.update(db.collection("invoices").doc(id), { date: newDate });
+                const oldInv = invoices.find(i => i.id === id);
                 
-                const relatedTrx = transactions.filter(t => t.invoiceId === id);
-                relatedTrx.forEach(trx => {
-                    batch.update(db.collection("transactions").doc(trx.id), { invoiceDate: newDate });
-                    trx.invoiceDate = newDate; 
+                oldInv.items.forEach(oldItem => {
+                    const item = items.find(i => i.id === oldItem.itemId);
+                    if(item) item.stock -= oldItem.qty; 
                 });
+
+                const oldTrxs = transactions.filter(t => t.invoiceId === id);
+                oldTrxs.forEach(t => batch.delete(db.collection("transactions").doc(t.id)));
+
+                editDraftItems.forEach(newItem => {
+                    const item = items.find(i => i.id === newItem.itemId);
+                    if(item) {
+                        item.stock += newItem.qty;
+                        if(newItem.expiry) item.expiry = newItem.expiry;
+                        const trxObj = { id: 'TRX-' + Math.random().toString(36).substr(2, 9), invoiceId: id, type: 'add', itemId: newItem.itemId, itemName: item.name, itemUnit: item.unit, itemExpiry: item.expiry, qty: newItem.qty, date: new Date().toISOString(), invoiceDate: newDate };
+                        batch.set(db.collection("transactions").doc(trxObj.id), trxObj);
+                    }
+                });
+
+                items.forEach(item => batch.update(db.collection("items").doc(item.id), { stock: item.stock, expiry: item.expiry || '' }));
+
+                batch.update(db.collection("invoices").doc(id), { date: newDate, items: editDraftItems, itemCount: editDraftItems.length });
+
+                await batch.commit();
+                showMsg('تم تحديث قائمة الإدخال بنجاح', 'success');
+                setTimeout(() => location.reload(), 1500); 
+            } catch(e) { showMsg('حدث خطأ أثناء التحديث', 'error'); console.error(e); btn.disabled = false; }
+        };
+
+        // --- تعديل السحب المفرد ليتوافق مع آلية القوائم ---
+        window.submitWithdraw = async function() {
+            const id = document.getElementById('withdraw-item-id').value;
+            const qty = parseFloat(document.getElementById('withdraw-qty').value);
+            const wDate = document.getElementById('withdraw-single-date').value;
+            
+            if (!id || isNaN(qty) || qty <= 0 || !wDate) { showMsg('بيانات غير صحيحة', 'error'); return; }
+            
+            const item = items.find(i => i.id === id);
+            if (item.stock < qty) { showMsg(`المخزون غير كافٍ!`, 'error'); return; }
+
+            const btn = document.getElementById('btn-withdraw'); 
+            btn.disabled = true;
+            
+            // إنشاء كائن قائمة سحب تحتوي على مادة واحدة فقط
+            const listId = 'W-LIST-' + Date.now();
+            const singleDraftItem = [{ itemId: id, itemName: item.name, itemUnit: item.unit, qty: qty }];
+            
+            const withdrawListObj = { id: listId, date: wDate, createdAt: new Date().toISOString(), items: singleDraftItem, itemCount: 1 };
+
+            try {
+                const batch = db.batch();
+                
+                // 1. حفظ العملية في مجموعة قوائم السحب
+                batch.set(db.collection("withdrawals").doc(listId), withdrawListObj);
+
+                // 2. تحديث المخزون
+                item.stock -= qty;
+                batch.update(db.collection("items").doc(item.id), { stock: item.stock });
+                
+                // 3. حفظ حركة السحب
+                const trxObj = { id: 'TRX-' + Math.random().toString(36).substr(2, 9), invoiceId: listId, type: 'withdraw', itemId: id, itemName: item.name, itemUnit: item.unit, itemExpiry: item.expiry, qty: qty, date: new Date().toISOString(), invoiceDate: wDate };
+                batch.set(db.collection("transactions").doc(trxObj.id), trxObj);
 
                 await batch.commit();
                 
-                const invIndex = invoices.findIndex(i => i.id === id);
-                if(invIndex > -1) invoices[invIndex].date = newDate;
+                // تحديث المصفوفات المحلية
+                withdrawalsList.push(withdrawListObj);
+                transactions.push(trxObj);
+
+                document.getElementById('withdraw-search').value = ''; document.getElementById('withdraw-qty').value = '';
+                showMsg('تم السحب بنجاح وأدرج في السجلات', 'success'); 
+                window.renderDashboard(); window.renderCatalog();
                 
-                showMsg('تم التحديث بنجاح', 'success');
-                window.showScreen('invoices-history-screen');
-            } catch(e) { showMsg('حدث خطأ أثناء التحديث', 'error'); }
+            } catch(e) { showMsg('خطأ في الاتصال بقاعدة البيانات', 'error'); item.stock += qty; }
             btn.disabled = false;
+        };
+        // ------------------------------------------------
+
+        window.addWithdrawDraftItem = function() {
+            const id = document.getElementById('withdraw-list-item-id').value;
+            const qty = parseFloat(document.getElementById('withdraw-list-qty').value);
+            if (!id || isNaN(qty) || qty <= 0) return;
+            const item = items.find(i => i.id === id);
+            let alreadyDrafted = 0;
+            const existingIndex = draftWithdrawItems.findIndex(d => d.itemId === id);
+            if (existingIndex > -1) alreadyDrafted = draftWithdrawItems[existingIndex].qty;
+            if (item.stock < (alreadyDrafted + qty)) { showMsg(`تجاوز المخزون! المتبقي: ${item.stock}`, 'error'); return; }
+            if(existingIndex > -1) draftWithdrawItems[existingIndex].qty += qty;
+            else draftWithdrawItems.push({ itemId: id, itemName: item.name, itemUnit: item.unit, qty: qty });
+            document.getElementById('withdraw-list-search').value = ''; document.getElementById('withdraw-list-qty').value = '';
+            window.renderWithdrawDraftList();
+        };
+
+        window.removeWithdrawDraftItem = function(index) { draftWithdrawItems.splice(index, 1); window.renderWithdrawDraftList(); };
+
+        window.renderWithdrawDraftList = function() {
+            const container = document.getElementById('withdraw-draft-list-container');
+            if (draftWithdrawItems.length === 0) { container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">لم يتم إضافة مواد بعد</div>'; return; }
+            container.innerHTML = draftWithdrawItems.map((d, index) => `<div style="display:flex; justify-content:space-between; padding:12px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; margin-bottom:10px;"><div><strong style="color:var(--danger);">${d.itemName}</strong> - ${d.qty} ${d.itemUnit}</div><div style="color:var(--danger); cursor:pointer;" onclick="removeWithdrawDraftItem(${index})"><i class="fas fa-trash"></i> حذف</div></div>`).join('');
+        };
+
+        window.saveWithdrawList = async function() {
+            const wDate = document.getElementById('withdraw-list-date').value;
+            if (draftWithdrawItems.length === 0 || !wDate) return;
+            const btn = document.getElementById('btn-save-withdraw-list'); btn.disabled = true;
+            const listId = 'W-LIST-' + Date.now();
+            const withdrawListObj = { id: listId, date: wDate, createdAt: new Date().toISOString(), items: draftWithdrawItems, itemCount: draftWithdrawItems.length };
+            
+            try {
+                const batch = db.batch();
+                for (let d of draftWithdrawItems) {
+                    const itm = items.find(i => i.id === d.itemId);
+                    if (!itm || itm.stock < d.qty) { showMsg(`مخزون "${d.itemName}" غير كافٍ.`, 'error'); btn.disabled = false; return; }
+                }
+
+                batch.set(db.collection("withdrawals").doc(listId), withdrawListObj);
+
+                draftWithdrawItems.forEach(d => {
+                    const itemIndex = items.findIndex(i => i.id === d.itemId);
+                    if(itemIndex > -1) {
+                        items[itemIndex].stock -= d.qty;
+                        const trxObj = { id: 'TRX-' + Math.random().toString(36).substr(2, 9), invoiceId: listId, type: 'withdraw', itemId: d.itemId, itemName: items[itemIndex].name, itemUnit: items[itemIndex].unit, itemExpiry: items[itemIndex].expiry, qty: d.qty, date: new Date().toISOString(), invoiceDate: wDate };
+                        batch.set(db.collection("transactions").doc(trxObj.id), trxObj);
+                        batch.update(db.collection("items").doc(items[itemIndex].id), { stock: items[itemIndex].stock });
+                    }
+                });
+                
+                await batch.commit();
+                withdrawalsList.push(withdrawListObj);
+                draftWithdrawItems = []; window.renderWithdrawDraftList();
+                showMsg('تم سحب القائمة بنجاح', 'success'); window.renderDashboard(); window.renderCatalog();
+            } catch(e) { showMsg('خطأ أثناء الرفع!', 'error'); } 
+            btn.disabled = false;
+        };
+
+        window.renderWithdrawsHistory = function() {
+            const tbody = document.getElementById('withdraws-table-body');
+            let html = '';
+            const sorted = [...withdrawalsList].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+            sorted.forEach(w => {
+                html += `<tr><td><strong>${w.id}</strong></td><td>${w.date}</td><td><span class="badge badge-orange">${w.itemCount} مواد</span></td><td style="color:var(--text-muted)">${new Date(w.createdAt).toLocaleString()}</td><td><button class="btn btn-danger" style="padding: 8px 12px; font-size: 0.85rem;" onclick="editWithdraw('${w.id}')"><i class="fas fa-edit"></i> تعديل</button></td></tr>`;
+            });
+            tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">لا توجد سجلات سحب</td></tr>';
+        };
+
+        window.editWithdraw = function(wId) {
+            const wList = withdrawalsList.find(w => w.id === wId);
+            if(!wList) return;
+            document.getElementById('edit-withdraw-id').value = wList.id;
+            document.getElementById('edit-withdraw-date').value = wList.date;
+            editWithdrawDraftItems = JSON.parse(JSON.stringify(wList.items));
+            window.renderEditWithdrawDraftList();
+            window.showScreen('edit-withdraw-screen');
+        };
+
+        window.addEditWithdrawDraftItem = function() {
+            const id = document.getElementById('edit-withdraw-item-id').value;
+            const qty = parseFloat(document.getElementById('edit-withdraw-qty').value);
+            if (!id || isNaN(qty) || qty <= 0) return;
+            const item = items.find(i => i.id === id);
+            
+            const existingIndex = editWithdrawDraftItems.findIndex(d => d.itemId === id);
+            if(existingIndex > -1) editWithdrawDraftItems[existingIndex].qty += qty;
+            else editWithdrawDraftItems.push({ itemId: id, itemName: item.name, itemUnit: item.unit, qty: qty });
+            
+            document.getElementById('edit-withdraw-search').value = ''; document.getElementById('edit-withdraw-qty').value = '';
+            window.renderEditWithdrawDraftList();
+        };
+
+        window.removeEditWithdrawDraftItem = function(index) { editWithdrawDraftItems.splice(index, 1); window.renderEditWithdrawDraftList(); };
+
+        window.renderEditWithdrawDraftList = function() {
+            const container = document.getElementById('edit-withdraw-draft-container');
+            if (editWithdrawDraftItems.length === 0) { container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">القائمة فارغة</div>'; return; }
+            container.innerHTML = editWithdrawDraftItems.map((d, index) => `<div style="display:flex; justify-content:space-between; padding:12px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; margin-bottom:10px;"><div><strong>${d.itemName}</strong> - ${d.qty} ${d.itemUnit}</div><div style="color:var(--danger); cursor:pointer;" onclick="removeEditWithdrawDraftItem(${index})"><i class="fas fa-trash"></i> حذف</div></div>`).join('');
+        };
+
+        window.cancelEditWithdraw = function() { window.showScreen('withdraw-history-screen'); };
+
+        window.saveEditedWithdraw = async function() {
+            const id = document.getElementById('edit-withdraw-id').value;
+            const newDate = document.getElementById('edit-withdraw-date').value;
+            if(!newDate || editWithdrawDraftItems.length === 0) { showMsg('البيانات غير مكتملة', 'error'); return; }
+            const btn = document.getElementById('btn-save-withdraw-edit'); btn.disabled = true;
+
+            try {
+                const batch = db.batch();
+                const oldList = withdrawalsList.find(w => w.id === id);
+                
+                oldList.items.forEach(oldItem => {
+                    const item = items.find(i => i.id === oldItem.itemId);
+                    if(item) item.stock += oldItem.qty; 
+                });
+
+                for (let newItem of editWithdrawDraftItems) {
+                    const item = items.find(i => i.id === newItem.itemId);
+                    if (!item || item.stock < newItem.qty) {
+                        showMsg(`عذراً، مخزون "${newItem.itemName}" غير كافٍ لإتمام التعديل!`, 'error');
+                        btn.disabled = false;
+                        setTimeout(() => location.reload(), 2000);
+                        return;
+                    }
+                }
+
+                const oldTrxs = transactions.filter(t => t.invoiceId === id);
+                oldTrxs.forEach(t => batch.delete(db.collection("transactions").doc(t.id)));
+
+                editWithdrawDraftItems.forEach(newItem => {
+                    const item = items.find(i => i.id === newItem.itemId);
+                    if(item) {
+                        item.stock -= newItem.qty;
+                        const trxObj = { id: 'TRX-' + Math.random().toString(36).substr(2, 9), invoiceId: id, type: 'withdraw', itemId: newItem.itemId, itemName: item.name, itemUnit: item.unit, itemExpiry: item.expiry, qty: newItem.qty, date: new Date().toISOString(), invoiceDate: newDate };
+                        batch.set(db.collection("transactions").doc(trxObj.id), trxObj);
+                    }
+                });
+
+                items.forEach(item => batch.update(db.collection("items").doc(item.id), { stock: item.stock }));
+
+                batch.update(db.collection("withdrawals").doc(id), { date: newDate, items: editWithdrawDraftItems, itemCount: editWithdrawDraftItems.length });
+
+                await batch.commit();
+                showMsg('تم تحديث قائمة السحب بنجاح', 'success');
+                setTimeout(() => location.reload(), 1500); 
+            } catch(e) { showMsg('حدث خطأ أثناء التحديث', 'error'); console.error(e); btn.disabled = false; }
         };
 
         window.renderReports = function() {
@@ -1125,7 +1217,6 @@
             const tbody = document.getElementById('reports-table-body');
             
             let filtered = transactions.filter(t => t.itemName.toLowerCase().includes(nameFilter));
-            
             if (dateFrom) filtered = filtered.filter(t => t.invoiceDate >= dateFrom);
             if (dateTo) filtered = filtered.filter(t => t.invoiceDate <= dateTo);
             
@@ -1133,20 +1224,9 @@
             currentReportData = filtered;
             
             let inTotal = 0; let outTotal = 0;
-            
             tbody.innerHTML = filtered.map(t => {
-                if(t.type === 'add') inTotal += t.qty;
-                else outTotal += t.qty;
-                
-                return `<tr>
-                    <td>${t.invoiceDate}</td>
-                    <td><strong>${t.itemName}</strong></td>
-                    <td>${t.itemExpiry || '-'}</td>
-                    <td>${t.itemUnit}</td>
-                    <td><span class="badge ${t.type === 'add' ? 'badge-orange' : 'badge-red'}" style="background:${t.type === 'add' ? '#dcfce7' : '#fee2e2'}; color:${t.type === 'add' ? '#166534' : '#991b1b'}">${t.type === 'add' ? 'إدخال' : 'سحب'}</span></td>
-                    <td><strong>${t.qty}</strong></td>
-                    <td style="font-size:0.85rem; color:var(--text-muted);">${t.invoiceId || 'مباشر'}</td>
-                </tr>`;
+                if(t.type === 'add') inTotal += t.qty; else outTotal += t.qty;
+                return `<tr><td>${t.invoiceDate}</td><td><strong>${t.itemName}</strong></td><td>${t.itemExpiry || '-'}</td><td>${t.itemUnit}</td><td><span class="badge ${t.type === 'add' ? 'badge-orange' : 'badge-red'}" style="background:${t.type === 'add' ? '#dcfce7' : '#fee2e2'}; color:${t.type === 'add' ? '#166534' : '#991b1b'}">${t.type === 'add' ? 'إدخال' : 'سحب'}</span></td><td><strong>${t.qty}</strong></td><td style="font-size:0.85rem; color:var(--text-muted);">${t.invoiceId || 'مباشر'}</td></tr>`;
             }).join('');
             
             if(filtered.length === 0) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">لا توجد حركات تطابق البحث</td></tr>`;
@@ -1154,6 +1234,15 @@
             document.getElementById('stat-in').innerText = inTotal;
             document.getElementById('stat-out').innerText = outTotal;
             document.getElementById('stat-net').innerText = inTotal - outTotal;
+        };
+        
+        window.exportToExcel = function() {
+            if(currentReportData.length === 0) { showMsg('لا توجد بيانات للتصدير', 'error'); return; }
+            const dataToExport = currentReportData.map(t => ({ 'تاريخ الحركة': t.invoiceDate, 'اسم المادة': t.itemName, 'الكمية': t.qty, 'الوحدة': t.itemUnit, 'نوع الحركة': t.type === 'add' ? 'إدخال' : 'سحب', 'المرجع السحابي': t.invoiceId || 'مباشر' }));
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "تقرير الحركات");
+            XLSX.writeFile(wb, "تقرير_حركة_المخزون.xlsx");
         };
     </script>
 </body>
