@@ -818,7 +818,7 @@
                 div.innerHTML = `<span>${item.name}</span><span class="item-info">متوفر: ${item.stock} ${item.unit}</span>`;
                 div.onclick = () => {
                     document.getElementById(`${type}-search`).value = item.name;
-                    const hiddenIdField = document.getElementById(`${type}-item-id`);
+                    const hiddenIdField = document.getElementById(`${type}-item-id`) || document.getElementById(`${type}-id`);
                     if(hiddenIdField) hiddenIdField.value = item.id;
                     document.getElementById(`${type}-dropdown`).classList.remove('show');
 
