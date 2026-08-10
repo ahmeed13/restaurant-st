@@ -2,7 +2,8 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- تم التعديل هنا لفرض عرض سطح المكتب على جميع الأجهزة -->
+    <meta name="viewport" content="width=1200">
     <title>نظام إدارة المخازن - سحابي</title>
     <!-- استدعاء خط Cairo -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -130,7 +131,7 @@
         .stock-low { color: var(--warning); }
         .stock-zero { color: var(--danger); }
 
-        /* الجداول التفاعلية للهواتف */
+        /* الجداول التفاعلية */
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius); border: 1px solid var(--border); background: white; box-shadow: var(--shadow-sm); }
         table { width: 100%; border-collapse: collapse; min-width: 600px; }
         th, td { padding: 14px 16px; text-align: right; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
@@ -167,45 +168,10 @@
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px; }
         .modal-card { background: white; width: 100%; max-width: 400px; padding: 30px 20px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); text-align: center; }
 
-        /* CSS الاستجابة للشاشات الصغيرة والمتوسطة (Responsive Media Queries) */
-        @media (max-width: 992px) {
-            body { flex-direction: column; }
-            .mobile-header { display: flex; }
-            .sidebar {
-                position: fixed;
-                top: 0;
-                right: -290px;
-                height: 100vh;
-                height: -webkit-fill-available;
-                z-index: 1002;
-                box-shadow: -5px 0 25px rgba(0,0,0,0.2);
-            }
-            .sidebar.active { right: 0; }
-            .main-content { padding: 20px 15px; }
-        }
-
-        @media (max-width: 600px) {
-            .card { padding: 18px 15px; }
-            .form-group { min-width: 100%; }
-            .form-row { gap: 10px; }
-            .btn { width: 100%; }
-            .card-header { flex-direction: column; align-items: flex-start; }
-            .card-header .btn { margin-top: 10px; }
-            .dashboard-grid { grid-template-columns: 1fr; }
-            .alerts-section { grid-template-columns: 1fr; }
-        }
+        /* تمت إزالة جميع أكواد @media لضمان عدم تغيير الشكل في الشاشات الصغيرة */
     </style>
 </head>
 <body>
-
-    <!-- شريط الهاتف العلوي -->
-    <div class="mobile-header">
-        <h3><i class="fas fa-box-open"></i> إدارة المخازن</h3>
-        <button class="menu-toggle-btn" id="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
-    </div>
-
-    <!-- غطاء إغلاق القائمة الجانبية في الهاتف -->
-    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
     <!-- شاشة التحميل -->
     <div id="db-loader">
@@ -730,7 +696,7 @@
         let pendingNavBtn = null;
         const PASSCODE = '103130';
 
-        // للتحكم بالقائمة الجانبية في الأجهزة الصغيرة
+        // دالة إظهار القائمة الجانبية تركت هنا لأمان عمل السكربت رغم عدم الحاجة لها في سطح المكتب
         window.toggleSidebar = function() {
             document.getElementById('sidebar').classList.toggle('active');
             document.getElementById('sidebar-overlay').classList.toggle('active');
@@ -779,12 +745,6 @@
             if(screenId === 'withdraw-history-screen') window.renderWithdrawsHistory();
             if(screenId === 'dashboard-screen') window.renderDashboard();
             if(screenId === 'view-items-screen') window.renderCatalog();
-
-            // إغلاق القائمة عند اختيار أي شاشة في الشاشات الصغيرة
-            if(window.innerWidth <= 992) {
-                document.getElementById('sidebar').classList.remove('active');
-                document.getElementById('sidebar-overlay').classList.remove('active');
-            }
         };
 
         window.requireAuth = function(screenId, navBtn) {
