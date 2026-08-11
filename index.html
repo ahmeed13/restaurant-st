@@ -1147,6 +1147,7 @@
                         const trxObj = { id: 'TRX-' + Math.random().toString(36).substr(2, 9), invoiceId: listId, type: 'withdraw', itemId: d.itemId, itemName: items[itemIndex].name, itemUnit: items[itemIndex].unit, itemExpiry: items[itemIndex].expiry, qty: d.qty, date: new Date().toISOString(), invoiceDate: wDate };
                         batch.set(db.collection("transactions").doc(trxObj.id), trxObj);
                         batch.update(db.collection("items").doc(items[itemIndex].id), { stock: items[itemIndex].stock });
+                        transactions.push(trxObj); // السطر المضاف لحل المشكلة
                     }
                 });
                 
