@@ -205,6 +205,7 @@
         <button class="nav-btn" onclick="requireAuth('invoices-history-screen', this)"><i class="fas fa-history"></i> سجلات وقوائم الإدخال</button>
         
         <button class="nav-btn" onclick="requireAuth('reports-screen', this)"><i class="fas fa-chart-line"></i> التقارير الشاملة</button>
+        <button class="nav-btn" onclick="requireAuth('withdraw-reports-screen', this)"><i class="fas fa-file-export"></i> تقارير السحوبات المفصلة</button>
         <button id="logout-btn" class="nav-btn logout-btn" onclick="logout()" style="display: none;"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</button>
     </aside>
 
@@ -586,11 +587,11 @@
             </div>
         </div>
 
-        <!-- 7. شاشة التقارير -->
+        <!-- 7. شاشة التقارير الشاملة -->
         <div id="reports-screen" class="screen">
             <div class="card">
                 <div class="card-header">
-                    <div class="card-header-title"><i class="fas fa-chart-line"></i> التقارير وحركة المخزون</div>
+                    <div class="card-header-title"><i class="fas fa-chart-line"></i> التقارير وحركة المخزون الشاملة</div>
                     <button class="btn btn-secondary" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> تصدير لـ Excel</button>
                 </div>
                 <div class="form-row" style="background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
@@ -645,6 +646,53 @@
                 </div>
             </div>
         </div>
+
+        <!-- 8. شاشة تقارير السحوبات المستقلة -->
+        <div id="withdraw-reports-screen" class="screen">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-title" style="color: var(--danger);"><i class="fas fa-file-export"></i> تقرير السحوبات المفصل</div>
+                    <button class="btn btn-secondary" onclick="exportWithdrawsToExcel()"><i class="fas fa-file-excel"></i> تصدير لـ Excel</button>
+                </div>
+                <div class="form-row" style="background: #fef2f2; padding: 15px; border-radius: 10px; border: 1px dashed #fca5a5;">
+                    <div class="form-group">
+                        <label><i class="fas fa-search"></i> بحث عن مادة (مسحوبة):</label>
+                        <input type="text" class="form-control" id="w-report-filter-name" placeholder="اكتب للفلترة..." onkeyup="renderWithdrawReports()">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-alt"></i> من تاريخ:</label>
+                        <input type="date" class="form-control" id="w-report-date-from" onchange="renderWithdrawReports()">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-alt"></i> إلى تاريخ:</label>
+                        <input type="date" class="form-control" id="w-report-date-to" onchange="renderWithdrawReports()">
+                    </div>
+                </div>
+                <div class="dashboard-grid" style="margin-top: 15px;">
+                    <div class="dash-stat-card" style="padding: 12px 15px;">
+                        <div class="dash-info" style="text-align: center; width: 100%;">
+                            <h4>إجمالي الكميات المسحوبة (للبحث الحالي)</h4>
+                            <h2 id="w-stat-out" style="color:var(--danger)">0</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>المادة</th>
+                                <th>الوحدة</th>
+                                <th>الكمية المسحوبة</th>
+                                <th>مرجع السحب</th>
+                            </tr>
+                        </thead>
+                        <tbody id="withdraw-reports-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <!-- نافذة تسجيل الدخول -->
@@ -741,6 +789,7 @@
                 navBtn.classList.add('active');
             }
             if(screenId === 'reports-screen') window.renderReports();
+            if(screenId === 'withdraw-reports-screen') window.renderWithdrawReports();
             if(screenId === 'invoices-history-screen') window.renderInvoicesHistory();
             if(screenId === 'withdraw-history-screen') window.renderWithdrawsHistory();
             if(screenId === 'dashboard-screen') window.renderDashboard();
@@ -1283,6 +1332,56 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "تقرير الحركات");
             XLSX.writeFile(wb, "تقرير_حركة_المخزون.xlsx");
+        };
+
+        // ------------------ برمجة شاشة تقارير السحوبات المستقلة ------------------
+        let currentWithdrawReportData = [];
+
+        window.renderWithdrawReports = function() {
+            const nameFilter = document.getElementById('w-report-filter-name').value.trim().toLowerCase();
+            const dateFrom = document.getElementById('w-report-date-from').value;
+            const dateTo = document.getElementById('w-report-date-to').value;
+            const tbody = document.getElementById('withdraw-reports-table-body');
+            
+            // جلب الحركات التي نوعها (سحب) فقط
+            let filtered = transactions.filter(t => t.type === 'withdraw' && t.itemName.toLowerCase().includes(nameFilter));
+            
+            if (dateFrom) filtered = filtered.filter(t => t.invoiceDate >= dateFrom);
+            if (dateTo) filtered = filtered.filter(t => t.invoiceDate <= dateTo);
+            
+            filtered.sort((a, b) => new Date(b.invoiceDate) - new Date(a.invoiceDate));
+            currentWithdrawReportData = filtered;
+            
+            let outTotal = 0;
+            tbody.innerHTML = filtered.map(t => {
+                outTotal += t.qty;
+                return `<tr>
+                    <td>${t.invoiceDate}</td>
+                    <td><strong>${t.itemName}</strong></td>
+                    <td>${t.itemUnit}</td>
+                    <td><strong style="color:var(--danger);">${t.qty}</strong></td>
+                    <td style="font-size:0.8rem; color:var(--text-muted);">${t.invoiceId || 'مباشر'}</td>
+                </tr>`;
+            }).join('');
+            
+            if(filtered.length === 0) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">لا توجد سحوبات تطابق بحثك الحالي</td></tr>`;
+            
+            document.getElementById('w-stat-out').innerText = outTotal;
+        };
+        
+        window.exportWithdrawsToExcel = function() {
+            if(currentWithdrawReportData.length === 0) { showMsg('لا توجد بيانات للتصدير', 'error'); return; }
+            const dataToExport = currentWithdrawReportData.map(t => ({ 
+                'تاريخ السحب': t.invoiceDate, 
+                'اسم المادة': t.itemName, 
+                'الكمية المسحوبة': t.qty, 
+                'الوحدة': t.itemUnit, 
+                'المرجع السحابي (رقم القائمة)': t.invoiceId || 'مباشر' 
+            }));
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "تقرير السحوبات");
+            XLSX.writeFile(wb, "تقرير_السحوبات_المفصل.xlsx");
         };
     </script>
 </body>
