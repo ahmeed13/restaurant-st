@@ -716,7 +716,7 @@
         let isAuthenticated = false;
         let pendingScreen = '';
         let pendingNavBtn = null;
-        let pendingAction = null; // للحركات المعلقة بعد تسجيل الدخول
+        let pendingAction = null; 
         const PASSCODE = '103130';
 
         window.toggleSidebar = function() {
@@ -789,7 +789,6 @@
                 window.closeModal();
                 document.getElementById('logout-btn').style.display = 'flex';
                 
-                // إذا كان هناك إجراء معلق (مثل التعديل المباشر) نفذه، وإلا انتقل للشاشة المطلوبة
                 if (pendingAction) {
                     pendingAction();
                     pendingAction = null;
@@ -803,7 +802,7 @@
 
         window.closeModal = function() { 
             document.getElementById('login-modal').style.display = 'none'; 
-            pendingAction = null; // تفريغ الإجراء لتجنب الأخطاء
+            pendingAction = null; 
         };
         
         window.logout = function() {
@@ -842,7 +841,6 @@
             currentCatalogData = filtered;
             if (filtered.length === 0) { grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;"><i class="fas fa-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i> لا توجد مواد</div>`; return; }
 
-            // تم إضافة زر سجل الحركات هنا
             grid.innerHTML = filtered.map(item => {
                 let stockClass = item.stock <= 0 ? 'stock-zero' : (item.stock <= 10 ? 'stock-low' : 'stock-good');
                 return `<div class="item-card">
@@ -857,12 +855,10 @@
             }).join('');
         };
 
-        // --- نظام سجل حركات المادة والتعديل المباشر ---
         window.viewItemHistory = function(itemId, itemName) {
             document.getElementById('history-modal-title').innerHTML = `<i class="fas fa-history"></i> سجل حركات: ${itemName}`;
             const tbody = document.getElementById('item-history-table-body');
             
-            // فلترة حركات هذه المادة فقط وترتيبها تنازلياً حسب التاريخ
             let itemTransactions = transactions.filter(t => t.itemId === itemId);
             itemTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
             
@@ -873,7 +869,6 @@
                     const isAdd = t.type === 'add';
                     const typeBadge = isAdd ? '<span class="badge badge-orange" style="background:#dcfce7; color:#166534">إضافة</span>' : '<span class="badge badge-red" style="background:#fee2e2; color:#991b1b">سحب</span>';
                     
-                    // توليد زر التعديل إذا كانت الحركة مرتبطة بقائمة
                     let editBtn = '';
                     if (isAdd && t.invoiceId) {
                         editBtn = `<button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="openEditFromHistory('${t.invoiceId}', 'add')"><i class="fas fa-edit"></i> تعديل القائمة</button>`;
@@ -901,24 +896,18 @@
         };
 
         window.openEditFromHistory = function(invoiceId, type) {
-            // إعداد دالة الإجراء المطلوبة للتنفيذ
             const action = type === 'add' ? () => window.editInvoice(invoiceId) : () => window.editWithdraw(invoiceId);
-            
-            // إغلاق نافذة السجل فوراً
             window.closeHistoryModal();
 
             if (isAuthenticated) {
-                // إذا كان مسجلاً، نفذ التعديل مباشرة
                 action();
             } else {
-                // إذا لم يكن مسجلاً، اطلب كلمة المرور واحفظ الإجراء لتنفيذه بعد تسجيل الدخول
                 pendingAction = action;
                 document.getElementById('login-modal').style.display = 'flex';
                 document.getElementById('admin-password').value = '';
                 document.getElementById('admin-password').focus();
             }
         };
-        // ----------------------------------------------------
 
         window.exportCatalogToExcel = function() {
             if(currentCatalogData.length === 0) { showMsg('لا توجد بيانات للتصدير', 'error'); return; }
@@ -1086,9 +1075,57 @@
             let html = '';
             const sortedInvoices = [...invoices].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
             sortedInvoices.forEach(inv => {
-                html += `<tr><td><strong>${inv.id}</strong></td><td>${inv.date}</td><td><span class="badge badge-orange">${inv.itemCount} مواد</span></td><td style="color:var(--text-muted)">${new Date(inv.createdAt).toLocaleString()}</td><td><button class="btn btn-primary" style="padding: 6px 10px; font-size: 0.8rem;" onclick="editInvoice('${inv.id}')"><i class="fas fa-edit"></i> تعديل</button></td></tr>`;
+                html += `<tr>
+                    <td><strong>${inv.id}</strong></td>
+                    <td>${inv.date}</td>
+                    <td><span class="badge badge-orange">${inv.itemCount} مواد</span></td>
+                    <td style="color:var(--text-muted)">${new Date(inv.createdAt).toLocaleString()}</td>
+                    <td style="display: flex; gap: 5px; justify-content: flex-end;">
+                        <button class="btn btn-primary" style="padding: 6px 10px; font-size: 0.8rem;" onclick="editInvoice('${inv.id}')"><i class="fas fa-edit"></i> تعديل</button>
+                        <button class="btn btn-danger" style="padding: 6px 10px; font-size: 0.8rem; background-color: var(--danger);" onclick="deleteInvoice('${inv.id}')"><i class="fas fa-trash"></i> حذف</button>
+                    </td>
+                </tr>`;
             });
             tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">لا توجد سجلات إدخال</td></tr>';
+        };
+
+        window.deleteInvoice = async function(invId) {
+            if(!confirm('هل أنت متأكد من حذف قائمة الإدخال هذه؟ سيتم خصم الكميات المضافة منها من المخزون الحالي.')) return;
+            
+            const invIndex = invoices.findIndex(i => i.id === invId);
+            if(invIndex === -1) return;
+            const inv = invoices[invIndex];
+
+            try {
+                const batch = db.batch();
+                
+                inv.items.forEach(oldItem => {
+                    const item = items.find(i => i.id === oldItem.itemId);
+                    if(item) {
+                        item.stock -= oldItem.qty;
+                        batch.update(db.collection("items").doc(item.id), { stock: item.stock });
+                    }
+                });
+
+                const oldTrxs = transactions.filter(t => t.invoiceId === invId);
+                oldTrxs.forEach(t => {
+                    batch.delete(db.collection("transactions").doc(t.id));
+                });
+
+                batch.delete(db.collection("invoices").doc(invId));
+                await batch.commit(); 
+                
+                invoices.splice(invIndex, 1);
+                transactions = transactions.filter(t => t.invoiceId !== invId);
+                
+                showMsg('تم حذف قائمة الإدخال واسترجاع المخزون بنجاح', 'success');
+                window.renderInvoicesHistory();
+                window.renderDashboard(); 
+                window.renderCatalog();
+            } catch(e) {
+                showMsg('حدث خطأ أثناء الحذف والتزامن مع السحابة', 'error');
+                console.error(e);
+            }
         };
 
         window.editInvoice = function(invId) {
@@ -1272,9 +1309,57 @@
             let html = '';
             const sorted = [...withdrawalsList].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
             sorted.forEach(w => {
-                html += `<tr><td><strong>${w.id}</strong></td><td>${w.date}</td><td><span class="badge badge-orange">${w.itemCount} مواد</span></td><td style="color:var(--text-muted)">${new Date(w.createdAt).toLocaleString()}</td><td><button class="btn btn-danger" style="padding: 6px 10px; font-size: 0.8rem;" onclick="editWithdraw('${w.id}')"><i class="fas fa-edit"></i> تعديل</button></td></tr>`;
+                html += `<tr>
+                    <td><strong>${w.id}</strong></td>
+                    <td>${w.date}</td>
+                    <td><span class="badge badge-orange">${w.itemCount} مواد</span></td>
+                    <td style="color:var(--text-muted)">${new Date(w.createdAt).toLocaleString()}</td>
+                    <td style="display: flex; gap: 5px; justify-content: flex-end;">
+                        <button class="btn btn-danger" style="padding: 6px 10px; font-size: 0.8rem;" onclick="editWithdraw('${w.id}')"><i class="fas fa-edit"></i> تعديل</button>
+                        <button class="btn btn-danger" style="padding: 6px 10px; font-size: 0.8rem; background-color: #991b1b;" onclick="deleteWithdraw('${w.id}')"><i class="fas fa-trash"></i> حذف</button>
+                    </td>
+                </tr>`;
             });
             tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">لا توجد سجلات سحب</td></tr>';
+        };
+
+        window.deleteWithdraw = async function(wId) {
+            if(!confirm('هل أنت متأكد من حذف قائمة السحب هذه؟ سيتم إرجاع الكميات المسحوبة إلى المخزون الحالي.')) return;
+            
+            const wIndex = withdrawalsList.findIndex(w => w.id === wId);
+            if(wIndex === -1) return;
+            const wList = withdrawalsList[wIndex];
+
+            try {
+                const batch = db.batch();
+                
+                wList.items.forEach(oldItem => {
+                    const item = items.find(i => i.id === oldItem.itemId);
+                    if(item) {
+                        item.stock += oldItem.qty;
+                        batch.update(db.collection("items").doc(item.id), { stock: item.stock });
+                    }
+                });
+
+                const oldTrxs = transactions.filter(t => t.invoiceId === wId);
+                oldTrxs.forEach(t => {
+                    batch.delete(db.collection("transactions").doc(t.id));
+                });
+
+                batch.delete(db.collection("withdrawals").doc(wId));
+                await batch.commit(); 
+                
+                withdrawalsList.splice(wIndex, 1);
+                transactions = transactions.filter(t => t.invoiceId !== wId);
+                
+                showMsg('تم حذف قائمة السحب واسترجاع المخزون بنجاح', 'success');
+                window.renderWithdrawsHistory();
+                window.renderDashboard(); 
+                window.renderCatalog();
+            } catch(e) {
+                showMsg('حدث خطأ أثناء الحذف والتزامن مع السحابة', 'error');
+                console.error(e);
+            }
         };
 
         window.editWithdraw = function(wId) {
