@@ -1169,7 +1169,7 @@
         window.saveEditedInvoice = async function() {
             const id = document.getElementById('edit-invoice-id').value;
             const newDate = document.getElementById('edit-invoice-date').value;
-            if(!newDate || editDraftItems.length === 0) { showMsg('بيانات غير مكتملة', 'error'); return; }
+            if(!newDate) { showMsg('الرجاء تحديد التاريخ', 'error'); return; }
             const btn = document.getElementById('btn-save-edit'); btn.disabled = true;
 
             try {
@@ -1399,7 +1399,7 @@
         window.saveEditedWithdraw = async function() {
             const id = document.getElementById('edit-withdraw-id').value;
             const newDate = document.getElementById('edit-withdraw-date').value;
-            if(!newDate || editWithdrawDraftItems.length === 0) { showMsg('البيانات غير مكتملة', 'error'); return; }
+            if(!newDate) { showMsg('الرجاء تحديد التاريخ', 'error'); return; }
             const btn = document.getElementById('btn-save-withdraw-edit'); btn.disabled = true;
 
             try {
