@@ -2,7 +2,6 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <!-- تم التعديل هنا لفرض عرض سطح المكتب على جميع الأجهزة -->
     <meta name="viewport" content="width=1200">
     <title>نظام إدارة المخازن - سحابي</title>
     <!-- استدعاء خط Cairo -->
@@ -38,39 +37,17 @@
         html, body { min-height: 100vh; background-color: var(--bg-color); color: var(--text-main); }
         body { display: flex; flex-direction: row; overflow-x: hidden; position: relative; }
 
-        /* شريط الهاتف العلوي */
-        .mobile-header {
-            display: none;
-            background: var(--dark);
-            color: white;
-            padding: 15px 20px;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 1001;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+        .mobile-header { display: none; background: var(--dark); color: white; padding: 15px 20px; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1001; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .mobile-header h3 { font-size: 1.1rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
         .menu-toggle-btn { background: transparent; border: none; color: white; font-size: 1.4rem; cursor: pointer; padding: 5px; }
 
-        /* خلفية القائمة عند الفتح في الهواتف */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(3px);
-            z-index: 1001;
-        }
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(3px); z-index: 1001; }
         .sidebar-overlay.active { display: block; }
 
-        /* شاشة التحميل */
         #db-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ffffff; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
         .spinner { width: 50px; height: 50px; border: 5px solid #e2e8f0; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* شريط التنقل الجانبي */
         .sidebar { width: 280px; min-width: 280px; background: linear-gradient(180deg, var(--dark) 0%, var(--dark-light) 100%); color: white; display: flex; flex-direction: column; padding: 25px 0; transition: var(--transition); height: 100vh; position: sticky; top: 0; overflow-y: auto; z-index: 1002; box-shadow: 4px 0 15px rgba(0,0,0,0.1); }
         .sidebar-header { padding: 0 25px 25px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; text-align: center; }
         .sidebar-header h2 { font-weight: 800; font-size: 1.4rem; color: #fff; display: flex; align-items: center; justify-content: center; gap: 10px; }
@@ -83,13 +60,11 @@
         .logout-btn { margin-top: auto; color: #fca5a5; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; }
         .logout-btn:hover { color: #f87171; background: rgba(239, 68, 68, 0.1); }
 
-        /* منطقة المحتوى */
         .main-content { flex: 1; min-width: 0; padding: 30px; position: relative; }
         .screen { display: none; animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         .screen.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* البطاقات والنماذج */
         .card { background: var(--card-bg); border-radius: var(--radius); padding: 25px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); margin-bottom: 25px; transition: var(--transition); }
         .card-header { font-size: 1.25rem; font-weight: 800; color: var(--dark); margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
         .card-header-title { display: flex; align-items: center; gap: 10px; }
@@ -101,7 +76,6 @@
         .form-control { width: 100%; padding: 12px 15px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 0.95rem; transition: var(--transition); outline: none; background: #fff; color: var(--text-main); font-weight: 600; -webkit-appearance: none; }
         .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(67, 56, 202, 0.1); }
         
-        /* الأزرار */
         .btn { padding: 12px 24px; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: var(--shadow-sm); }
         .btn:active { transform: scale(0.98); }
         .btn-primary { background: var(--primary); color: white; }
@@ -113,7 +87,6 @@
         .btn-block { width: 100%; }
         .btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
 
-        /* قائمة الهبوط الذكية */
         .searchable-select { position: relative; }
         .dropdown-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1.5px solid var(--border); border-radius: 10px; max-height: 220px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); display: none; margin-top: 5px; }
         .dropdown-list.show { display: block; animation: fadeIn 0.2s ease-out; }
@@ -121,7 +94,6 @@
         .dropdown-item:hover { background: #f8fafc; color: var(--primary); }
         .item-info { font-size: 0.8rem; color: var(--text-muted); background: var(--bg-color); padding: 4px 8px; border-radius: 6px; }
 
-        /* شبكة المواد */
         .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; margin-top: 20px; }
         .item-card { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; transition: var(--transition); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow-sm); }
         .item-card-title { font-size: 1.05rem; font-weight: 800; color: var(--dark); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
@@ -131,19 +103,16 @@
         .stock-low { color: var(--warning); }
         .stock-zero { color: var(--danger); }
 
-        /* الجداول التفاعلية */
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius); border: 1px solid var(--border); background: white; box-shadow: var(--shadow-sm); }
         table { width: 100%; border-collapse: collapse; min-width: 600px; }
         th, td { padding: 14px 16px; text-align: right; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
         th { background: #f8fafc; font-weight: 800; color: var(--dark); text-transform: uppercase; }
         
-        /* التنبيهات */
         .alert-box { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 14px 25px; border-radius: 10px; color: white; font-weight: 700; z-index: 99999; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); align-items: center; gap: 10px; font-size: 0.95rem; max-width: 90%; width: max-content; }
         @keyframes slideDown { from { top: -60px; opacity: 0; } to { top: 20px; opacity: 1; } }
         .alert-success { background: linear-gradient(135deg, var(--secondary), #10b981); }
         .alert-error { background: linear-gradient(135deg, var(--danger), #ef4444); }
 
-        /* لوحة القيادة */
         .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 15px; margin-bottom: 25px; }
         .dash-stat-card { background: white; padding: 20px; border-radius: var(--radius); border: 1px solid var(--border); display: flex; align-items: center; gap: 15px; box-shadow: var(--shadow-sm); }
         .dash-icon { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; shrink: 0; }
@@ -164,28 +133,23 @@
         .badge-red { background: #fee2e2; color: #991b1b; }
         .badge-orange { background: #fef3c7; color: #b45309; }
 
-        /* نافذة دخول المدير */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px; }
         .modal-card { background: white; width: 100%; max-width: 400px; padding: 30px 20px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); text-align: center; }
 
-        /* تمت إزالة جميع أكواد @media لضمان عدم تغيير الشكل في الشاشات الصغيرة */
     </style>
 </head>
 <body>
 
-    <!-- شاشة التحميل -->
     <div id="db-loader">
         <div class="spinner"></div>
         <h2 style="color:var(--dark); font-size: 1.3rem;">جاري مزامنة النظام السحابي...</h2>
         <p style="color:var(--text-muted); margin-top:8px; font-size: 0.9rem;">يرجى الانتظار لحين جلب أحدث البيانات</p>
     </div>
 
-    <!-- صندوق التنبيهات -->
     <div id="alert-box" class="alert-box">
         <span id="alert-text"></span>
     </div>
 
-    <!-- القائمة الجانبية -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <h2><i class="fas fa-box-open"></i> إدارة المخازن</h2>
@@ -211,7 +175,6 @@
 
     <main class="main-content">
         
-        <!-- 0. شاشة لوحة القيادة -->
         <div id="dashboard-screen" class="screen active">
             <div class="card-header" style="border:none; padding-bottom:0;">
                 <div class="card-header-title"><i class="fas fa-tachometer-alt"></i> نظرة عامة على النظام</div>
@@ -256,7 +219,6 @@
             </div>
         </div>
 
-        <!-- 1. شاشة عرض وتصفح المخزون الذكية -->
         <div id="view-items-screen" class="screen">
             <div class="card">
                 <div class="card-header">
@@ -284,7 +246,6 @@
             </div>
         </div>
 
-        <!-- 2. شاشة سحب مادة منفردة -->
         <div id="withdraw-screen" class="screen">
             <div class="card">
                 <div class="card-header"><div class="card-header-title"><i class="fas fa-dolly"></i> سحب مادة من المخزن (مفردة)</div></div>
@@ -310,7 +271,6 @@
             </div>
         </div>
 
-        <!-- 2.5 شاشة سحب قائمة مواد -->
         <div id="withdraw-list-screen" class="screen">
             <div class="card">
                 <div class="card-header" style="color: var(--danger);"><div class="card-header-title"><i class="fas fa-list-ul"></i> سحب قائمة مواد (مجمعة)</div></div>
@@ -352,7 +312,6 @@
             </div>
         </div>
 
-        <!-- 2.6 شاشة سجلات السحب للتعديل -->
         <div id="withdraw-history-screen" class="screen">
             <div class="card">
                 <div class="card-header"><div class="card-header-title"><i class="fas fa-history"></i> سجلات وقوائم السحب السابقة</div></div>
@@ -373,7 +332,6 @@
             </div>
         </div>
 
-        <!-- 3. شاشة تعريف مادة جديدة -->
         <div id="add-item-screen" class="screen">
             <div class="card">
                 <div class="card-header"><div class="card-header-title"><i class="fas fa-plus-circle"></i> بطاقة تعريف مادة جديدة</div></div>
@@ -397,7 +355,6 @@
             </div>
         </div>
 
-        <!-- 4. شاشة إدارة وتعديل المواد -->
         <div id="edit-items-screen" class="screen">
             <div class="card">
                 <div class="card-header"><div class="card-header-title"><i class="fas fa-edit"></i> إدارة وتعديل المواد</div></div>
@@ -432,7 +389,6 @@
             </div>
         </div>
 
-        <!-- 5. شاشة إدخال قائمة مواد -->
         <div id="add-invoice-screen" class="screen">
             <div class="card">
                 <div class="card-header"><div class="card-header-title"><i class="fas fa-file-invoice"></i> إدخال قائمة مواد (فاتورة جديدة)</div></div>
@@ -478,7 +434,6 @@
             </div>
         </div>
 
-        <!-- 6. شاشة سجلات الإدخال -->
         <div id="invoices-history-screen" class="screen">
             <div class="card">
                 <div class="card-header"><div class="card-header-title"><i class="fas fa-history"></i> سجلات وقوائم الإدخال السابقة</div></div>
@@ -499,7 +454,6 @@
             </div>
         </div>
 
-        <!-- 6.5 تعديل الفاتورة -->
         <div id="edit-invoice-screen" class="screen">
             <div class="card">
                 <div class="card-header" style="color: var(--primary);"><div class="card-header-title"><i class="fas fa-edit"></i> تعديل قائمة إدخال سابقة</div></div>
@@ -545,7 +499,6 @@
             </div>
         </div>
 
-        <!-- 6.6 تعديل قائمة سحب -->
         <div id="edit-withdraw-screen" class="screen">
             <div class="card">
                 <div class="card-header" style="color: var(--danger);"><div class="card-header-title"><i class="fas fa-edit"></i> تعديل قائمة سحب سابقة</div></div>
@@ -587,7 +540,6 @@
             </div>
         </div>
 
-        <!-- 7. شاشة التقارير الشاملة -->
         <div id="reports-screen" class="screen">
             <div class="card">
                 <div class="card-header">
@@ -647,7 +599,6 @@
             </div>
         </div>
 
-        <!-- 8. شاشة تقارير السحوبات المستقلة -->
         <div id="withdraw-reports-screen" class="screen">
             <div class="card">
                 <div class="card-header">
@@ -711,7 +662,30 @@
         </div>
     </div>
 
-    <!-- كود برمجة النظام + ربط Firebase -->
+    <!-- نافذة سجل حركات المادة الذكية -->
+    <div id="item-history-modal" class="modal-overlay">
+        <div class="modal-card" style="max-width: 800px; width: 95%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                <h3 id="history-modal-title" style="color: var(--dark); font-size: 1.1rem; margin: 0;"><i class="fas fa-history"></i> سجل حركات المادة</h3>
+                <button class="btn btn-danger" onclick="closeHistoryModal()" style="padding: 6px 12px; font-size: 1rem;"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto; box-shadow: none; border: 1px solid var(--border);">
+                <table style="min-width: 500px;">
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>نوع الحركة</th>
+                            <th>الكمية</th>
+                            <th>رقم القائمة</th>
+                            <th>إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody id="item-history-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 
@@ -742,9 +716,9 @@
         let isAuthenticated = false;
         let pendingScreen = '';
         let pendingNavBtn = null;
+        let pendingAction = null; // للحركات المعلقة بعد تسجيل الدخول
         const PASSCODE = '103130';
 
-        // دالة إظهار القائمة الجانبية تركت هنا لأمان عمل السكربت رغم عدم الحاجة لها في سطح المكتب
         window.toggleSidebar = function() {
             document.getElementById('sidebar').classList.toggle('active');
             document.getElementById('sidebar-overlay').classList.toggle('active');
@@ -801,6 +775,7 @@
             else {
                 pendingScreen = screenId;
                 pendingNavBtn = navBtn;
+                pendingAction = null;
                 document.getElementById('login-modal').style.display = 'flex';
                 document.getElementById('admin-password').value = '';
                 document.getElementById('admin-password').focus();
@@ -813,12 +788,24 @@
                 isAuthenticated = true;
                 window.closeModal();
                 document.getElementById('logout-btn').style.display = 'flex';
-                window.showScreen(pendingScreen, pendingNavBtn);
+                
+                // إذا كان هناك إجراء معلق (مثل التعديل المباشر) نفذه، وإلا انتقل للشاشة المطلوبة
+                if (pendingAction) {
+                    pendingAction();
+                    pendingAction = null;
+                } else if (pendingScreen) {
+                    window.showScreen(pendingScreen, pendingNavBtn);
+                }
+                
                 showMsg('تم التحقق بنجاح، أهلاً بك', 'success');
             } else { showMsg('كلمة المرور غير صحيحة', 'error'); }
         };
 
-        window.closeModal = function() { document.getElementById('login-modal').style.display = 'none'; };
+        window.closeModal = function() { 
+            document.getElementById('login-modal').style.display = 'none'; 
+            pendingAction = null; // تفريغ الإجراء لتجنب الأخطاء
+        };
+        
         window.logout = function() {
             isAuthenticated = false;
             document.getElementById('logout-btn').style.display = 'none';
@@ -855,11 +842,83 @@
             currentCatalogData = filtered;
             if (filtered.length === 0) { grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;"><i class="fas fa-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i> لا توجد مواد</div>`; return; }
 
+            // تم إضافة زر سجل الحركات هنا
             grid.innerHTML = filtered.map(item => {
                 let stockClass = item.stock <= 0 ? 'stock-zero' : (item.stock <= 10 ? 'stock-low' : 'stock-good');
-                return `<div class="item-card"><div class="item-card-title"><i class="fas fa-cube" style="color: var(--primary);"></i><span>${item.name}</span></div><div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;"><i class="fas fa-calendar-alt"></i> الصلاحية: ${item.expiry || 'غير محددة'}</div><div class="item-card-details"><span style="font-weight: 700;">المخزون المتوفر:</span><span class="item-stock ${stockClass}">${item.stock} <small style="font-size: 0.8rem; font-weight: normal;">${item.unit}</small></span></div></div>`;
+                return `<div class="item-card">
+                    <div class="item-card-title"><i class="fas fa-cube" style="color: var(--primary);"></i><span>${item.name}</span></div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;"><i class="fas fa-calendar-alt"></i> الصلاحية: ${item.expiry || 'غير محددة'}</div>
+                    <div class="item-card-details">
+                        <span style="font-weight: 700;">المخزون المتوفر:</span>
+                        <span class="item-stock ${stockClass}">${item.stock} <small style="font-size: 0.8rem; font-weight: normal;">${item.unit}</small></span>
+                    </div>
+                    <button class="btn btn-secondary btn-block" style="margin-top: 15px; padding: 8px; font-size: 0.85rem;" onclick="viewItemHistory('${item.id}', '${item.name}')"><i class="fas fa-history"></i> عرض سجل الحركات</button>
+                </div>`;
             }).join('');
         };
+
+        // --- نظام سجل حركات المادة والتعديل المباشر ---
+        window.viewItemHistory = function(itemId, itemName) {
+            document.getElementById('history-modal-title').innerHTML = `<i class="fas fa-history"></i> سجل حركات: ${itemName}`;
+            const tbody = document.getElementById('item-history-table-body');
+            
+            // فلترة حركات هذه المادة فقط وترتيبها تنازلياً حسب التاريخ
+            let itemTransactions = transactions.filter(t => t.itemId === itemId);
+            itemTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            if(itemTransactions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد حركات سابقة لهذه المادة</td></tr>';
+            } else {
+                tbody.innerHTML = itemTransactions.map(t => {
+                    const isAdd = t.type === 'add';
+                    const typeBadge = isAdd ? '<span class="badge badge-orange" style="background:#dcfce7; color:#166534">إضافة</span>' : '<span class="badge badge-red" style="background:#fee2e2; color:#991b1b">سحب</span>';
+                    
+                    // توليد زر التعديل إذا كانت الحركة مرتبطة بقائمة
+                    let editBtn = '';
+                    if (isAdd && t.invoiceId) {
+                        editBtn = `<button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="openEditFromHistory('${t.invoiceId}', 'add')"><i class="fas fa-edit"></i> تعديل القائمة</button>`;
+                    } else if (!isAdd && t.invoiceId) {
+                        editBtn = `<button class="btn btn-danger" style="padding: 4px 8px; font-size: 0.8rem;" onclick="openEditFromHistory('${t.invoiceId}', 'withdraw')"><i class="fas fa-edit"></i> تعديل القائمة</button>`;
+                    } else {
+                        editBtn = '<span style="color:var(--text-muted); font-size:0.8rem;">حركة مباشرة قديمة</span>';
+                    }
+
+                    return `<tr>
+                        <td>${t.invoiceDate}</td>
+                        <td>${typeBadge}</td>
+                        <td><strong>${t.qty}</strong></td>
+                        <td style="font-size:0.8rem; color:var(--text-muted);">${t.invoiceId || 'مباشر'}</td>
+                        <td>${editBtn}</td>
+                    </tr>`;
+                }).join('');
+            }
+            
+            document.getElementById('item-history-modal').style.display = 'flex';
+        };
+
+        window.closeHistoryModal = function() {
+            document.getElementById('item-history-modal').style.display = 'none';
+        };
+
+        window.openEditFromHistory = function(invoiceId, type) {
+            // إعداد دالة الإجراء المطلوبة للتنفيذ
+            const action = type === 'add' ? () => window.editInvoice(invoiceId) : () => window.editWithdraw(invoiceId);
+            
+            // إغلاق نافذة السجل فوراً
+            window.closeHistoryModal();
+
+            if (isAuthenticated) {
+                // إذا كان مسجلاً، نفذ التعديل مباشرة
+                action();
+            } else {
+                // إذا لم يكن مسجلاً، اطلب كلمة المرور واحفظ الإجراء لتنفيذه بعد تسجيل الدخول
+                pendingAction = action;
+                document.getElementById('login-modal').style.display = 'flex';
+                document.getElementById('admin-password').value = '';
+                document.getElementById('admin-password').focus();
+            }
+        };
+        // ----------------------------------------------------
 
         window.exportCatalogToExcel = function() {
             if(currentCatalogData.length === 0) { showMsg('لا توجد بيانات للتصدير', 'error'); return; }
@@ -1196,7 +1255,7 @@
                         const trxObj = { id: 'TRX-' + Math.random().toString(36).substr(2, 9), invoiceId: listId, type: 'withdraw', itemId: d.itemId, itemName: items[itemIndex].name, itemUnit: items[itemIndex].unit, itemExpiry: items[itemIndex].expiry, qty: d.qty, date: new Date().toISOString(), invoiceDate: wDate };
                         batch.set(db.collection("transactions").doc(trxObj.id), trxObj);
                         batch.update(db.collection("items").doc(items[itemIndex].id), { stock: items[itemIndex].stock });
-                        transactions.push(trxObj); // السطر المضاف لحل المشكلة
+                        transactions.push(trxObj); 
                     }
                 });
                 
@@ -1334,7 +1393,6 @@
             XLSX.writeFile(wb, "تقرير_حركة_المخزون.xlsx");
         };
 
-        // ------------------ برمجة شاشة تقارير السحوبات المستقلة ------------------
         let currentWithdrawReportData = [];
 
         window.renderWithdrawReports = function() {
@@ -1343,7 +1401,6 @@
             const dateTo = document.getElementById('w-report-date-to').value;
             const tbody = document.getElementById('withdraw-reports-table-body');
             
-            // جلب الحركات التي نوعها (سحب) فقط
             let filtered = transactions.filter(t => t.type === 'withdraw' && t.itemName.toLowerCase().includes(nameFilter));
             
             if (dateFrom) filtered = filtered.filter(t => t.invoiceDate >= dateFrom);
