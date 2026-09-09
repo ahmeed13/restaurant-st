@@ -5,136 +5,179 @@
     <meta name="viewport" content="width=1200">
     <title>نظام إدارة المخازن - سحابي</title>
     <!-- استدعاء خط Cairo -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- استدعاء أيقونات FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- مكتبة التصدير إلى إكسيل (SheetJS) -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     
     <style>
+        /* ---------------- لوحة الألوان الاحترافية ---------------- */
         :root {
-            --primary: #4338ca;
-            --primary-hover: #3730a3;
-            --secondary: #059669;
-            --secondary-hover: #047857;
-            --danger: #dc2626;
-            --danger-hover: #b91c1c;
-            --warning: #d97706;
-            --dark: #0f172a;
+            --primary: #2563eb;         /* أزرق احترافي مريح */
+            --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
+            --secondary: #10b981;       /* أخضر هادئ للنجاح والإدخال */
+            --secondary-hover: #059669;
+            --danger: #ef4444;          /* أحمر ناعم للسحب والحذف */
+            --danger-hover: #dc2626;
+            --danger-light: #fef2f2;
+            --warning: #f59e0b;         /* برتقالي للتنبيهات والتسوية */
+            --warning-hover: #d97706;
+            
+            --dark: #0f172a;            /* لون القائمة الجانبية */
             --dark-light: #1e293b;
-            --bg-color: #f1f5f9;
+            --bg-color: #f8fafc;        /* خلفية التطبيق (مريحة للعين) */
             --card-bg: #ffffff;
-            --border: #e2e8f0;
+            --border: #e2e8f0;          /* حواف ناعمة */
+            
             --text-main: #334155;
             --text-muted: #64748b;
+            
             --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --radius: 12px;
-            --transition: all 0.3s ease;
+            --shadow-md: 0 4px 20px -2px rgba(15, 23, 42, 0.05); /* ظل ناعم عصري */
+            --shadow-hover: 0 10px 25px -5px rgba(15, 23, 42, 0.1);
+            
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; -webkit-tap-highlight-color: transparent; }
-        html, body { min-height: 100vh; background-color: var(--bg-color); color: var(--text-main); }
+        html, body { min-height: 100vh; background-color: var(--bg-color); color: var(--text-main); font-size: 15px; }
         body { display: flex; flex-direction: row; overflow-x: hidden; position: relative; }
 
-        .mobile-header { display: none; background: var(--dark); color: white; padding: 15px 20px; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1001; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .mobile-header h3 { font-size: 1.1rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
-        .menu-toggle-btn { background: transparent; border: none; color: white; font-size: 1.4rem; cursor: pointer; padding: 5px; }
-
-        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(3px); z-index: 1001; }
-        .sidebar-overlay.active { display: block; }
-
-        #db-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ffffff; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
-        .spinner { width: 50px; height: 50px; border: 5px solid #e2e8f0; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        /* شاشة التحميل */
+        #db-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(5px); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .spinner { width: 50px; height: 50px; border: 4px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s ease-in-out infinite; margin-bottom: 20px; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .sidebar { width: 280px; min-width: 280px; background: linear-gradient(180deg, var(--dark) 0%, var(--dark-light) 100%); color: white; display: flex; flex-direction: column; padding: 25px 0; transition: var(--transition); height: 100vh; position: sticky; top: 0; overflow-y: auto; z-index: 1002; box-shadow: 4px 0 15px rgba(0,0,0,0.1); }
-        .sidebar-header { padding: 0 25px 25px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; text-align: center; }
-        .sidebar-header h2 { font-weight: 800; font-size: 1.4rem; color: #fff; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .sidebar-header p { font-size: 0.8rem; color: #34d399; margin-top: 8px; font-weight: 700; background: rgba(52, 211, 153, 0.1); padding: 5px 10px; border-radius: 20px; display: inline-block; }
+        /* ---------------- القائمة الجانبية (Sidebar) ---------------- */
+        .sidebar { width: 280px; min-width: 280px; background: var(--dark); color: white; display: flex; flex-direction: column; padding: 20px 0; transition: var(--transition); height: 100vh; position: sticky; top: 0; overflow-y: auto; z-index: 1002; border-left: 1px solid rgba(255,255,255,0.05); }
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-thumb { background: var(--dark-light); border-radius: 10px; }
         
-        .nav-btn { background: transparent; border: none; color: #94a3b8; padding: 14px 20px; text-align: right; width: 100%; font-size: 0.95rem; cursor: pointer; transition: var(--transition); border-right: 4px solid transparent; font-weight: 600; display: flex; align-items: center; gap: 12px; }
-        .nav-btn i { font-size: 1.1rem; width: 24px; text-align: center; }
-        .nav-btn:hover { color: white; background: rgba(255,255,255,0.05); }
-        .nav-btn.active { color: white; background: rgba(79, 70, 229, 0.2); border-right-color: #818cf8; }
-        .logout-btn { margin-top: auto; color: #fca5a5; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; }
-        .logout-btn:hover { color: #f87171; background: rgba(239, 68, 68, 0.1); }
+        .sidebar-header { padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 20px; text-align: center; }
+        .sidebar-header h2 { font-weight: 800; font-size: 1.3rem; color: #fff; display: flex; align-items: center; justify-content: center; gap: 10px; letter-spacing: 0.5px; }
+        .sidebar-header p { font-size: 0.75rem; color: #6ee7b7; margin-top: 10px; font-weight: 700; background: rgba(16, 185, 129, 0.15); padding: 6px 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px; }
+        
+        .nav-btn { background: transparent; border: none; color: #94a3b8; padding: 12px 18px; margin: 4px 15px; border-radius: 10px; text-align: right; width: calc(100% - 30px); font-size: 0.95rem; cursor: pointer; transition: var(--transition); font-weight: 600; display: flex; align-items: center; gap: 12px; }
+        .nav-btn i { font-size: 1.1rem; width: 24px; text-align: center; transition: var(--transition); }
+        .nav-btn:hover { color: white; background: rgba(255,255,255,0.08); transform: translateX(-4px); }
+        .nav-btn.active { color: var(--primary-light); background: var(--primary); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4); }
+        .nav-btn.active i { color: #fff; }
+        
+        .logout-btn { margin-top: auto; color: #f87171; border-top: 1px solid rgba(255,255,255,0.08); border-radius: 0; margin-bottom: 0; padding-top: 20px; width: 100%; text-align: center; justify-content: center; }
+        .logout-btn:hover { background: transparent; color: #ef4444; transform: scale(1.05); }
 
-        .main-content { flex: 1; min-width: 0; padding: 30px; position: relative; }
-        .screen { display: none; animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        /* ---------------- المحتوى الرئيسي (Main Content) ---------------- */
+        .main-content { flex: 1; min-width: 0; padding: 35px 40px; position: relative; }
+        .screen { display: none; animation: slideFadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         .screen.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideFadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-        .card { background: var(--card-bg); border-radius: var(--radius); padding: 25px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); margin-bottom: 25px; transition: var(--transition); }
-        .card-header { font-size: 1.25rem; font-weight: 800; color: var(--dark); margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
-        .card-header-title { display: flex; align-items: center; gap: 10px; }
-        .card-header i { color: var(--primary); }
-        
-        .form-row { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
-        .form-group { flex: 1; min-width: 220px; position: relative; }
+        /* ---------------- البطاقات (Cards) ---------------- */
+        .card { background: var(--card-bg); border-radius: var(--radius-lg); padding: 30px; box-shadow: var(--shadow-md); border: 1px solid var(--border); margin-bottom: 25px; transition: var(--transition); }
+        .card-header { font-size: 1.3rem; font-weight: 800; color: var(--text-main); margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
+        .card-header-title { display: flex; align-items: center; gap: 12px; }
+        .card-header-title i { color: var(--primary); background: var(--primary-light); padding: 10px; border-radius: 10px; font-size: 1.1rem; }
+
+        /* ---------------- الحقول والنماذج (Forms) ---------------- */
+        .form-row { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+        .form-group { flex: 1; min-width: 240px; position: relative; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: 700; color: var(--text-main); font-size: 0.9rem; }
-        .form-control { width: 100%; padding: 12px 15px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 0.95rem; transition: var(--transition); outline: none; background: #fff; color: var(--text-main); font-weight: 600; -webkit-appearance: none; }
-        .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(67, 56, 202, 0.1); }
+        .form-control { width: 100%; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: var(--radius-md); font-size: 0.95rem; transition: var(--transition); outline: none; background: #f8fafc; color: var(--text-main); font-weight: 600; -webkit-appearance: none; }
+        .form-control:hover { border-color: #cbd5e1; }
+        .form-control:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15); }
         
-        .btn { padding: 12px 24px; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: var(--shadow-sm); }
-        .btn:active { transform: scale(0.98); }
+        /* ---------------- الأزرار (Buttons) ---------------- */
+        .btn { padding: 12px 24px; border: none; border-radius: var(--radius-md); font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; }
+        .btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+        .btn:active { transform: translateY(0); }
+        
         .btn-primary { background: var(--primary); color: white; }
         .btn-primary:hover { background: var(--primary-hover); }
+        
         .btn-secondary { background: var(--secondary); color: white; }
         .btn-secondary:hover { background: var(--secondary-hover); }
+        
         .btn-danger { background: var(--danger); color: white; }
         .btn-danger:hover { background: var(--danger-hover); }
+        
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-warning:hover { background: var(--warning-hover); }
+        
         .btn-block { width: 100%; }
-        .btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 
+        /* ---------------- القوائم المنسدلة الذكية ---------------- */
         .searchable-select { position: relative; }
-        .dropdown-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1.5px solid var(--border); border-radius: 10px; max-height: 220px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); display: none; margin-top: 5px; }
-        .dropdown-list.show { display: block; animation: fadeIn 0.2s ease-out; }
-        .dropdown-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; transition: var(--transition); }
-        .dropdown-item:hover { background: #f8fafc; color: var(--primary); }
-        .item-info { font-size: 0.8rem; color: var(--text-muted); background: var(--bg-color); padding: 4px 8px; border-radius: 6px; }
+        .dropdown-list { position: absolute; top: calc(100% + 5px); left: 0; right: 0; background: white; border: 1px solid var(--border); border-radius: var(--radius-md); max-height: 250px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); display: none; }
+        .dropdown-list.show { display: block; animation: slideFadeUp 0.2s ease-out; }
+        .dropdown-item { padding: 14px 18px; cursor: pointer; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; transition: var(--transition); font-weight: 600; }
+        .dropdown-item:last-child { border-bottom: none; }
+        .dropdown-item:hover { background: var(--primary-light); color: var(--primary); padding-right: 22px; }
+        .item-info { font-size: 0.8rem; color: var(--text-muted); background: white; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); }
 
-        .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; margin-top: 20px; }
-        .item-card { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; transition: var(--transition); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow-sm); }
-        .item-card-title { font-size: 1.05rem; font-weight: 800; color: var(--dark); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-        .item-card-details { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 10px 12px; border-radius: 8px; margin-top: 10px; }
-        .item-stock { font-size: 1.25rem; font-weight: 900; }
+        /* ---------------- عرض المخزون (Grid) ---------------- */
+        .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
+        .item-card { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; transition: var(--transition); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow-sm); position: relative; overflow: hidden; }
+        .item-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); border-color: #cbd5e1; }
+        .item-card::before { content: ''; position: absolute; top: 0; right: 0; width: 4px; height: 100%; background: var(--border); transition: var(--transition); }
+        .item-card:hover::before { background: var(--primary); }
+        
+        .item-card-title { font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+        .item-card-details { display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 12px 15px; border-radius: var(--radius-md); margin-top: 15px; border: 1px solid var(--border); }
+        .item-stock { font-size: 1.3rem; font-weight: 900; }
         .stock-good { color: var(--secondary); }
         .stock-low { color: var(--warning); }
         .stock-zero { color: var(--danger); }
 
-        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius); border: 1px solid var(--border); background: white; box-shadow: var(--shadow-sm); }
-        table { width: 100%; border-collapse: collapse; min-width: 600px; }
-        th, td { padding: 14px 16px; text-align: right; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-        th { background: #f8fafc; font-weight: 800; color: var(--dark); text-transform: uppercase; }
+        /* ---------------- الجداول العصرية (Tables) ---------------- */
+        .table-responsive { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--border); background: white; box-shadow: var(--shadow-sm); }
+        table { width: 100%; border-collapse: collapse; min-width: 700px; }
+        th, td { padding: 16px 20px; text-align: right; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+        th { background: #f8fafc; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.85rem; border-bottom: 2px solid var(--border); }
+        tr { transition: background 0.2s; }
+        tbody tr:hover { background: #f8fafc; }
+        tbody tr:last-child td { border-bottom: none; }
+
+        /* ---------------- لوحة القيادة (Dashboard) ---------------- */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .dash-stat-card { background: white; padding: 25px; border-radius: var(--radius-lg); border: 1px solid var(--border); display: flex; align-items: center; gap: 20px; box-shadow: var(--shadow-sm); transition: var(--transition); }
+        .dash-stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+        .dash-icon { width: 60px; height: 60px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: white; shrink: 0; }
+        .dash-icon.blue { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 4px 15px rgba(37,99,235,0.3); }
+        .dash-icon.green { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
+        .dash-icon.red { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 4px 15px rgba(239,68,68,0.3); }
+        .dash-info h4 { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 5px; font-weight: 700; }
+        .dash-info h2 { color: var(--text-main); font-size: 1.8rem; font-weight: 900; }
+
+        /* التنبيهات */
+        .alerts-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; }
+        .alert-panel { background: white; border-radius: var(--radius-lg); border: 1px solid var(--border); box-shadow: var(--shadow-sm); overflow: hidden; }
+        .alert-panel-header { padding: 18px 20px; font-weight: 800; color: white; display: flex; align-items: center; gap: 12px; font-size: 1rem; }
+        .alert-panel-header.warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .alert-panel-header.danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .alert-list { list-style: none; max-height: 350px; overflow-y: auto; padding: 10px; }
+        .alert-list li { padding: 14px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; background: #fff; border-radius: 8px; margin-bottom: 5px; transition: background 0.2s; }
+        .alert-list li:hover { background: var(--bg-color); }
         
-        .alert-box { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 14px 25px; border-radius: 10px; color: white; font-weight: 700; z-index: 99999; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); align-items: center; gap: 10px; font-size: 0.95rem; max-width: 90%; width: max-content; }
-        @keyframes slideDown { from { top: -60px; opacity: 0; } to { top: 20px; opacity: 1; } }
-        .alert-success { background: linear-gradient(135deg, var(--secondary), #10b981); }
-        .alert-error { background: linear-gradient(135deg, var(--danger), #ef4444); }
-
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .dash-stat-card { background: white; padding: 20px; border-radius: var(--radius); border: 1px solid var(--border); display: flex; align-items: center; gap: 15px; box-shadow: var(--shadow-sm); }
-        .dash-icon { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; shrink: 0; }
-        .dash-icon.blue { background: linear-gradient(135deg, #4f46e5, #3b82f6); }
-        .dash-icon.green { background: linear-gradient(135deg, #059669, #10b981); }
-        .dash-icon.red { background: linear-gradient(135deg, #dc2626, #ef4444); }
-        .dash-info h4 { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 3px; }
-        .dash-info h2 { color: var(--dark); font-size: 1.5rem; font-weight: 800; }
-
-        .alerts-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .alert-panel { background: white; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-sm); overflow: hidden; }
-        .alert-panel-header { padding: 15px 20px; font-weight: 800; color: white; display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
-        .alert-panel-header.warning { background: linear-gradient(135deg, #d97706, #f59e0b); }
-        .alert-panel-header.danger { background: linear-gradient(135deg, #dc2626, #ef4444); }
-        .alert-list { list-style: none; max-height: 300px; overflow-y: auto; }
-        .alert-list li { padding: 12px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
-        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 800; }
-        .badge-red { background: #fee2e2; color: #991b1b; }
+        /* العلامات (Badges) */
+        .badge { padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+        .badge-red { background: var(--danger-light); color: #991b1b; }
         .badge-orange { background: #fef3c7; color: #b45309; }
+        .badge-green { background: #dcfce7; color: #166534; }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .modal-card { background: white; width: 100%; max-width: 400px; padding: 30px 20px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); text-align: center; }
+        /* ---------------- النوافذ المنبثقة (Modals & Alerts) ---------------- */
+        .alert-box { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); padding: 16px 30px; border-radius: 50px; color: white; font-weight: 700; z-index: 99999; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.15); align-items: center; gap: 12px; font-size: 1rem; max-width: 90%; width: max-content; }
+        @keyframes alertDrop { 0% { top: -60px; opacity: 0; transform: translateX(-50%) scale(0.9); } 70% { top: 35px; transform: translateX(-50%) scale(1.02); } 100% { top: 30px; opacity: 1; transform: translateX(-50%) scale(1); } }
+        .alert-box { animation: alertDrop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .alert-success { background: var(--secondary); }
+        .alert-error { background: var(--danger); }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(8px); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-card { background: white; width: 100%; max-width: 450px; padding: 40px 30px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); text-align: center; animation: slideFadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
 
     </style>
 </head>
@@ -142,8 +185,8 @@
 
     <div id="db-loader">
         <div class="spinner"></div>
-        <h2 style="color:var(--dark); font-size: 1.3rem;">جاري مزامنة النظام السحابي...</h2>
-        <p style="color:var(--text-muted); margin-top:8px; font-size: 0.9rem;">يرجى الانتظار لحين جلب أحدث البيانات</p>
+        <h2 style="color:var(--text-main); font-size: 1.4rem; font-weight: 800;">جاري تهيئة النظام السحابي</h2>
+        <p style="color:var(--text-muted); margin-top:8px; font-size: 0.95rem;">يرجى الانتظار، نقوم بجلب أحدث البيانات...</p>
     </div>
 
     <div id="alert-box" class="alert-box">
@@ -152,29 +195,34 @@
 
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <h2><i class="fas fa-box-open"></i> إدارة المخازن</h2>
-            <p><i class="fas fa-cloud"></i> متصل بالسحابة</p>
+            <h2><i class="fas fa-cubes"></i> النظام المستودعي</h2>
+            <p><i class="fas fa-check-circle"></i> متصل بالسحابة</p>
         </div>
-        <button class="nav-btn active" onclick="showScreen('dashboard-screen', this)"><i class="fas fa-chart-pie"></i> لوحة القيادة والتنبيهات</button>
-        <button class="nav-btn" onclick="showScreen('view-items-screen', this)"><i class="fas fa-boxes"></i> عرض وتصفح المخزون</button>
+        <button class="nav-btn active" onclick="showScreen('dashboard-screen', this)"><i class="fas fa-chart-pie"></i> لوحة القيادة</button>
+        <button class="nav-btn" onclick="showScreen('view-items-screen', this)"><i class="fas fa-boxes"></i> تصفح المخزون</button>
         
-        <button class="nav-btn" onclick="showScreen('withdraw-screen', this)"><i class="fas fa-dolly"></i> سحب مادة (منفردة)</button>
+        <div style="margin: 15px 20px 5px; font-size: 0.75rem; color: #475569; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">عمليات السحب</div>
+        <button class="nav-btn" onclick="showScreen('withdraw-screen', this)"><i class="fas fa-dolly"></i> سحب مادة مفردة</button>
         <button class="nav-btn" onclick="showScreen('withdraw-list-screen', this)"><i class="fas fa-list-ul"></i> سحب قائمة مواد</button>
-        <button class="nav-btn" onclick="requireAuth('withdraw-history-screen', this)"><i class="fas fa-history"></i> سجلات وقوائم السحب</button>
+        <button class="nav-btn" onclick="requireAuth('withdraw-history-screen', this)"><i class="fas fa-history"></i> سجلات السحب</button>
         
+        <div style="margin: 15px 20px 5px; font-size: 0.75rem; color: #475569; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">الإدارة والإدخال</div>
         <button class="nav-btn" onclick="requireAuth('add-item-screen', this)"><i class="fas fa-plus-circle"></i> تعريف مادة جديدة</button>
-        <button class="nav-btn" onclick="requireAuth('edit-items-screen', this)"><i class="fas fa-edit"></i> إدارة وتعديل المواد</button>
+        <button class="nav-btn" onclick="requireAuth('edit-items-screen', this)"><i class="fas fa-edit"></i> إدارة المواد</button>
+        <button class="nav-btn" onclick="requireAuth('adjustment-screen', this)"><i class="fas fa-balance-scale"></i> التسوية الجردية</button>
+        <button class="nav-btn" onclick="requireAuth('add-invoice-screen', this)"><i class="fas fa-file-invoice"></i> إدخال فاتورة (قائمة)</button>
+        <button class="nav-btn" onclick="requireAuth('invoices-history-screen', this)"><i class="fas fa-history"></i> سجلات الإدخال</button>
         
-        <button class="nav-btn" onclick="requireAuth('add-invoice-screen', this)"><i class="fas fa-file-invoice"></i> إدخال قائمة مواد</button>
-        <button class="nav-btn" onclick="requireAuth('invoices-history-screen', this)"><i class="fas fa-history"></i> سجلات وقوائم الإدخال</button>
+        <div style="margin: 15px 20px 5px; font-size: 0.75rem; color: #475569; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">التقارير</div>
+        <button class="nav-btn" onclick="requireAuth('reports-screen', this)"><i class="fas fa-chart-line"></i> تقارير الحركة الشاملة</button>
+        <button class="nav-btn" onclick="requireAuth('withdraw-reports-screen', this)"><i class="fas fa-file-export"></i> تقارير السحوبات</button>
         
-        <button class="nav-btn" onclick="requireAuth('reports-screen', this)"><i class="fas fa-chart-line"></i> التقارير الشاملة</button>
-        <button class="nav-btn" onclick="requireAuth('withdraw-reports-screen', this)"><i class="fas fa-file-export"></i> تقارير السحوبات المفصلة</button>
         <button id="logout-btn" class="nav-btn logout-btn" onclick="logout()" style="display: none;"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</button>
     </aside>
 
     <main class="main-content">
         
+        <!-- Dashboard -->
         <div id="dashboard-screen" class="screen active">
             <div class="card-header" style="border:none; padding-bottom:0;">
                 <div class="card-header-title"><i class="fas fa-tachometer-alt"></i> نظرة عامة على النظام</div>
@@ -190,14 +238,14 @@
                 <div class="dash-stat-card">
                     <div class="dash-icon green"><i class="fas fa-arrow-down"></i></div>
                     <div class="dash-info">
-                        <h4>حركات الإدخال</h4>
+                        <h4>حركات الإدخال (التوريد)</h4>
                         <h2 id="dash-total-in">0</h2>
                     </div>
                 </div>
                 <div class="dash-stat-card">
                     <div class="dash-icon red"><i class="fas fa-arrow-up"></i></div>
                     <div class="dash-info">
-                        <h4>حركات السحب</h4>
+                        <h4>حركات السحب (الصرف)</h4>
                         <h2 id="dash-total-out">0</h2>
                     </div>
                 </div>
@@ -206,39 +254,40 @@
             <div class="alerts-section">
                 <div class="alert-panel">
                     <div class="alert-panel-header warning">
-                        <i class="fas fa-exclamation-triangle"></i> مواد قارب مخزونها على النفاذ (أقل من 10)
+                        <i class="fas fa-exclamation-triangle"></i> تنبيهات النواقص (المخزون أقل من 10)
                     </div>
                     <ul class="alert-list" id="low-stock-list"></ul>
                 </div>
                 <div class="alert-panel">
                     <div class="alert-panel-header danger">
-                        <i class="fas fa-calendar-times"></i> مواد أوشكت على الانتهاء (خلال 30 يوماً) أو منتهية
+                        <i class="fas fa-calendar-times"></i> تنبيهات الصلاحية (تنتهي خلال 30 يوماً)
                     </div>
                     <ul class="alert-list" id="expiring-list"></ul>
                 </div>
             </div>
         </div>
 
+        <!-- View Items -->
         <div id="view-items-screen" class="screen">
             <div class="card">
                 <div class="card-header">
                     <div class="card-header-title"><i class="fas fa-search-plus"></i> عرض وتصفح المخزون الحالي</div>
-                    <button class="btn btn-secondary" onclick="exportCatalogToExcel()"><i class="fas fa-file-excel"></i> تصدير لـ Excel</button>
+                    <button class="btn btn-secondary" onclick="exportCatalogToExcel()"><i class="fas fa-file-excel"></i> تصدير إكسيل</button>
                 </div>
                 
-                <div class="form-row" style="background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
+                <div class="form-row" style="background: var(--bg-color); padding: 20px; border-radius: var(--radius-lg); border: 1px solid var(--border);">
                     <div class="form-group" style="flex: 2;">
-                        <label><i class="fas fa-filter"></i> بحث ذكي عن مادة:</label>
+                        <label><i class="fas fa-filter text-primary"></i> بحث ذكي عن مادة:</label>
                         <input type="text" class="form-control" id="catalog-search" placeholder="ابحث باسم المادة..." oninput="renderCatalog()">
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-sort"></i> ترتيب حسب:</label>
+                        <label><i class="fas fa-sort text-primary"></i> ترتيب حسب:</label>
                         <select class="form-control" id="catalog-sort" onchange="renderCatalog()">
                             <option value="alpha-asc">الأحرف الهجائية (أ -> ي)</option>
                             <option value="alpha-desc">الأحرف الهجائية (ي -> أ)</option>
                             <option value="stock-high">المخزون: من الأعلى للأقل</option>
                             <option value="stock-low">المخزون: من الأقل للأعلى</option>
-                            <option value="expiry-near">تاريخ الصلاحية: الأقرب انتهاءً</option>
+                            <option value="expiry-near">الصلاحية: الأقرب انتهاءً</option>
                         </select>
                     </div>
                 </div>
@@ -246,9 +295,10 @@
             </div>
         </div>
 
+        <!-- Withdraw Single -->
         <div id="withdraw-screen" class="screen">
             <div class="card">
-                <div class="card-header"><div class="card-header-title"><i class="fas fa-dolly"></i> سحب مادة من المخزن (مفردة)</div></div>
+                <div class="card-header"><div class="card-header-title"><i class="fas fa-dolly" style="color:var(--danger); background:var(--danger-light)"></i> سحب مادة من المخزن (مفردة)</div></div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>تاريخ السحب:</label>
@@ -267,13 +317,16 @@
                         <input type="number" class="form-control" id="withdraw-qty" min="0.01" step="0.01">
                     </div>
                 </div>
-                <button class="btn btn-danger" id="btn-withdraw" onclick="submitWithdraw()"><i class="fas fa-check-circle"></i> تأكيد السحب المستودعي</button>
+                <div style="margin-top:10px">
+                    <button class="btn btn-danger" id="btn-withdraw" onclick="submitWithdraw()"><i class="fas fa-check-circle"></i> تأكيد وصرف المادة</button>
+                </div>
             </div>
         </div>
 
+        <!-- Withdraw List -->
         <div id="withdraw-list-screen" class="screen">
             <div class="card">
-                <div class="card-header" style="color: var(--danger);"><div class="card-header-title"><i class="fas fa-list-ul"></i> سحب قائمة مواد (مجمعة)</div></div>
+                <div class="card-header"><div class="card-header-title"><i class="fas fa-list-ul" style="color:var(--danger); background:var(--danger-light)"></i> سحب قائمة مواد (مجمعة)</div></div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>تاريخ القائمة (السحب):</label>
@@ -281,7 +334,7 @@
                     </div>
                 </div>
                 
-                <div class="card" style="background: #f8fafc; box-shadow: none; border: 1px dashed var(--danger); padding: 15px;">
+                <div class="card" style="background: var(--bg-color); box-shadow: none; border: 1.5px dashed #cbd5e1; padding: 20px;">
                     <div class="form-row" style="margin-bottom: 0;">
                         <div class="form-group searchable-select">
                             <label>المادة المطلوبة:</label>
@@ -294,35 +347,36 @@
                             <input type="number" class="form-control" id="withdraw-list-qty" min="0.01" step="0.01">
                         </div>
                         <div class="form-group" style="display: flex; align-items: flex-end;">
-                            <button class="btn btn-danger btn-block" onclick="addWithdrawDraftItem()"><i class="fas fa-plus"></i> إضافة للقائمة</button>
+                            <button class="btn btn-secondary btn-block" style="background:var(--text-main)" onclick="addWithdrawDraftItem()"><i class="fas fa-plus"></i> إدراج للقائمة</button>
                         </div>
                     </div>
                 </div>
 
-                <div style="margin-top: 15px; border: 1px solid var(--border); border-radius: var(--radius); padding: 15px;">
-                    <h4 style="margin-bottom: 10px; color: var(--dark); font-size:0.95rem;"><i class="fas fa-list-ol"></i> المواد المضافة لقائمة السحب:</h4>
+                <div style="margin-top: 20px; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px;">
+                    <h4 style="margin-bottom: 15px; color: var(--text-main); font-size:1rem;"><i class="fas fa-shopping-basket" style="color:var(--primary); margin-left:5px;"></i> سلة المواد المضافة للسحب:</h4>
                     <div id="withdraw-draft-list-container">
-                        <div style="text-align: center; color: var(--text-muted); padding: 15px;">لم يتم إضافة مواد بعد</div>
+                        <div style="text-align: center; color: var(--text-muted); padding: 20px; background:#f8fafc; border-radius:10px;"><i class="fas fa-box-open" style="font-size:2rem; margin-bottom:10px; display:block; opacity:0.5;"></i> السلة فارغة</div>
                     </div>
                 </div>
                 
-                <div style="margin-top: 20px;">
-                    <button class="btn btn-danger" id="btn-save-withdraw-list" onclick="saveWithdrawList()"><i class="fas fa-save"></i> تأكيد سحب القائمة بالكامل</button>
+                <div style="margin-top: 25px;">
+                    <button class="btn btn-danger" id="btn-save-withdraw-list" onclick="saveWithdrawList()"><i class="fas fa-save"></i> تأكيد صرف القائمة بالكامل</button>
                 </div>
             </div>
         </div>
 
+        <!-- Withdraw History -->
         <div id="withdraw-history-screen" class="screen">
             <div class="card">
-                <div class="card-header"><div class="card-header-title"><i class="fas fa-history"></i> سجلات وقوائم السحب السابقة</div></div>
+                <div class="card-header"><div class="card-header-title"><i class="fas fa-history" style="color:var(--danger); background:var(--danger-light)"></i> سجلات وقوائم السحب السابقة</div></div>
                 <div class="table-responsive">
                     <table>
                         <thead>
                             <tr>
-                                <th>المعرف</th>
+                                <th>معرف القائمة</th>
                                 <th>تاريخ السحب</th>
-                                <th>العدد</th>
-                                <th>التسجيل السحابي</th>
+                                <th>عدد المواد</th>
+                                <th>توقيت الإدراج السحابي</th>
                                 <th>إجراءات</th>
                             </tr>
                         </thead>
@@ -332,42 +386,49 @@
             </div>
         </div>
 
+        <!-- Add Item -->
         <div id="add-item-screen" class="screen">
             <div class="card">
                 <div class="card-header"><div class="card-header-title"><i class="fas fa-plus-circle"></i> بطاقة تعريف مادة جديدة</div></div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>اسم المادة:</label>
-                        <input type="text" class="form-control" id="new-item-name" placeholder="أدخل اسم المادة بدقة">
+                        <label>اسم المادة الصنف (دقيق):</label>
+                        <input type="text" class="form-control" id="new-item-name" placeholder="مثال: أسمنت بورتلاندي 50كغ">
                     </div>
                     <div class="form-group">
-                        <label>وحدة القياس:</label>
+                        <label>وحدة القياس المعتمدة:</label>
                         <select class="form-control" id="new-item-unit">
                             <option value="قطعة">قطعة</option>
                             <option value="غرام">غرام</option>
                             <option value="كيلو">كيلو</option>
                             <option value="لتر">لتر</option>
                             <option value="مل">مل</option>
+                            <option value="متر">متر</option>
+                            <option value="كيس">كيس</option>
                         </select>
                     </div>
                 </div>
-                <button class="btn btn-primary" id="btn-add-item" onclick="addNewItem()"><i class="fas fa-save"></i> حفظ المادة في النظام</button>
+                <div style="margin-top:10px">
+                    <button class="btn btn-primary" id="btn-add-item" onclick="addNewItem()"><i class="fas fa-save"></i> حفظ المادة في قاعدة البيانات</button>
+                </div>
             </div>
         </div>
 
+        <!-- Edit Items -->
         <div id="edit-items-screen" class="screen">
             <div class="card">
-                <div class="card-header"><div class="card-header-title"><i class="fas fa-edit"></i> إدارة وتعديل المواد</div></div>
-                <div class="form-row">
-                    <div class="form-group searchable-select">
-                        <label>اختر المادة المراد تعديلها:</label>
+                <div class="card-header"><div class="card-header-title"><i class="fas fa-edit"></i> إدارة وتعديل بطاقة مادة</div></div>
+                <div class="form-row" style="background: var(--bg-color); padding: 20px; border-radius: var(--radius-lg); border: 1px solid var(--border);">
+                    <div class="form-group searchable-select" style="flex: 1;">
+                        <label>اختر المادة المراد تعديل بياناتها:</label>
                         <input type="text" class="form-control" id="edit-search" placeholder="ابحث باسم المادة..." onfocus="openDropdown('edit')" oninput="filterDropdown('edit')" autocomplete="off">
                         <input type="hidden" id="edit-item-id">
                         <div class="dropdown-list" id="edit-dropdown"></div>
                     </div>
                 </div>
 
-                <div id="edit-item-form" style="display: none; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+                <div id="edit-item-form" style="display: none; margin-top: 25px; border-top: 2px dashed var(--border); padding-top: 25px;">
+                    <h4 style="margin-bottom: 15px; color:var(--text-main);">البيانات الجديدة للمادة:</h4>
                     <div class="form-row">
                         <div class="form-group">
                             <label>الاسم الجديد:</label>
@@ -381,71 +442,116 @@
                                 <option value="كيلو">كيلو</option>
                                 <option value="لتر">لتر</option>
                                 <option value="مل">مل</option>
+                                <option value="متر">متر</option>
+                                <option value="كيس">كيس</option>
                             </select>
                         </div>
                     </div>
-                    <button class="btn btn-primary" id="btn-update-item" onclick="updateItemDetails()"><i class="fas fa-cloud-upload-alt"></i> حفظ التعديلات في السحابة</button>
+                    <div style="margin-top:10px">
+                        <button class="btn btn-primary" id="btn-update-item" onclick="updateItemDetails()"><i class="fas fa-cloud-upload-alt"></i> تحديث البيانات سحابياً</button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div id="add-invoice-screen" class="screen">
+        <!-- Adjustment Screen -->
+        <div id="adjustment-screen" class="screen">
             <div class="card">
-                <div class="card-header"><div class="card-header-title"><i class="fas fa-file-invoice"></i> إدخال قائمة مواد (فاتورة جديدة)</div></div>
+                <div class="card-header">
+                    <div class="card-header-title"><i class="fas fa-balance-scale" style="color:var(--warning); background:#fef3c7;"></i> التسوية الجردية (مطابقة الواقع)</div>
+                </div>
+                
                 <div class="form-row">
                     <div class="form-group">
-                        <label>تاريخ الإدخال (للقائمة):</label>
+                        <label>تاريخ التسوية:</label>
+                        <input type="date" class="form-control" id="adj-date">
+                    </div>
+                </div>
+
+                <div class="form-row" style="background: var(--bg-color); padding: 20px; border-radius: var(--radius-lg); border: 1px solid var(--border);">
+                    <div class="form-group searchable-select">
+                        <label>اختر المادة للجرد (اكتب للبحث):</label>
+                        <input type="text" class="form-control" id="adj-search" placeholder="ابحث باسم المادة..." onfocus="openDropdown('adj')" oninput="filterDropdown('adj')" autocomplete="off">
+                        <input type="hidden" id="adj-item-id">
+                        <div class="dropdown-list" id="adj-dropdown"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>الرصيد الدفتري الحالي (نظام):</label>
+                        <input type="number" class="form-control" id="adj-current-qty" readonly style="background-color: #e2e8f0; border-color: #cbd5e1; cursor: not-allowed; font-weight:900; color:var(--text-main);" placeholder="يظهر تلقائياً">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>الجرد الواقعي (الكمية الفعلية):</label>
+                        <input type="number" class="form-control" id="adj-new-qty" min="0" step="0.01" placeholder="أدخل الكمية التي تم جردها يدوياً">
+                    </div>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <button class="btn btn-warning" id="btn-submit-adj" onclick="submitAdjustment()"><i class="fas fa-check-double"></i> اعتماد الفروقات وتحديث الرصيد</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Invoice -->
+        <div id="add-invoice-screen" class="screen">
+            <div class="card">
+                <div class="card-header"><div class="card-header-title"><i class="fas fa-file-invoice" style="color:var(--secondary); background:#dcfce7"></i> إدخال فاتورة / قائمة مواد جديدة</div></div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>تاريخ التوريد (الفاتورة):</label>
                         <input type="date" class="form-control" id="invoice-date">
                     </div>
                 </div>
                 
-                <div class="card" style="background: #f8fafc; box-shadow: none; border: 1px dashed var(--primary); padding: 15px;">
+                <div class="card" style="background: var(--bg-color); box-shadow: none; border: 1.5px dashed #cbd5e1; padding: 20px;">
                     <div class="form-row" style="margin-bottom: 0;">
                         <div class="form-group searchable-select">
-                            <label>المادة:</label>
+                            <label>المادة الموردة:</label>
                             <input type="text" class="form-control" id="invoice-search" placeholder="ابحث لإضافة مادة..." onfocus="openDropdown('invoice')" oninput="filterDropdown('invoice')" autocomplete="off">
                             <input type="hidden" id="invoice-item-id">
                             <div class="dropdown-list" id="invoice-dropdown"></div>
                         </div>
                         <div class="form-group">
-                            <label>تاريخ الصلاحية:</label>
+                            <label>تاريخ الصلاحية (إن وجد):</label>
                             <input type="date" class="form-control" id="invoice-expiry">
                         </div>
                         <div class="form-group">
-                            <label>الكمية:</label>
+                            <label>الكمية المستلمة:</label>
                             <input type="number" class="form-control" id="invoice-qty" min="0.01" step="0.01">
                         </div>
                         <div class="form-group" style="display: flex; align-items: flex-end;">
-                            <button class="btn btn-secondary btn-block" onclick="addDraftItem()"><i class="fas fa-plus"></i> إضافة</button>
+                            <button class="btn btn-secondary btn-block" style="background:var(--text-main);" onclick="addDraftItem()"><i class="fas fa-plus"></i> إدراج للفاتورة</button>
                         </div>
                     </div>
                 </div>
 
-                <div style="margin-top: 15px; border: 1px solid var(--border); border-radius: var(--radius); padding: 15px;">
-                    <h4 style="margin-bottom: 10px; color: var(--dark); font-size:0.95rem;"><i class="fas fa-list-ol"></i> المواد المضافة للقائمة الحالية:</h4>
+                <div style="margin-top: 20px; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px;">
+                    <h4 style="margin-bottom: 15px; color: var(--text-main); font-size:1rem;"><i class="fas fa-list-ol" style="color:var(--secondary); margin-left:5px;"></i> المواد المدرجة ضمن الفاتورة الحالية:</h4>
                     <div id="draft-list-container">
-                        <div style="text-align: center; color: var(--text-muted); padding: 15px;">لم يتم إضافة مواد بعد</div>
+                        <div style="text-align: center; color: var(--text-muted); padding: 20px; background:#f8fafc; border-radius:10px;"><i class="fas fa-box" style="font-size:2rem; margin-bottom:10px; display:block; opacity:0.5;"></i> الفاتورة فارغة</div>
                     </div>
                 </div>
                 
-                <div style="margin-top: 20px;">
-                    <button class="btn btn-primary" id="btn-save-invoice" onclick="saveInvoice()"><i class="fas fa-save"></i> حفظ القائمة ورفعها للسحابة</button>
+                <div style="margin-top: 25px;">
+                    <button class="btn btn-secondary" id="btn-save-invoice" onclick="saveInvoice()"><i class="fas fa-cloud-upload-alt"></i> حفظ الفاتورة وإضافة الكميات للمخزون</button>
                 </div>
             </div>
         </div>
 
+        <!-- Invoices History -->
         <div id="invoices-history-screen" class="screen">
             <div class="card">
-                <div class="card-header"><div class="card-header-title"><i class="fas fa-history"></i> سجلات وقوائم الإدخال السابقة</div></div>
+                <div class="card-header"><div class="card-header-title"><i class="fas fa-history" style="color:var(--secondary); background:#dcfce7"></i> سجلات فواتير الإدخال السابقة</div></div>
                 <div class="table-responsive">
                     <table>
                         <thead>
                             <tr>
-                                <th>المعرف</th>
+                                <th>معرف الفاتورة</th>
                                 <th>تاريخ الإدخال</th>
-                                <th>العدد</th>
-                                <th>التسجيل السحابي</th>
-                                <th>إجراءات</th>
+                                <th>عدد المواد</th>
+                                <th>توقيت الإدراج السحابي</th>
+                                <th>إجراءات الإدارة</th>
                             </tr>
                         </thead>
                         <tbody id="invoices-table-body"></tbody>
@@ -454,9 +560,10 @@
             </div>
         </div>
 
+        <!-- Edit Invoice -->
         <div id="edit-invoice-screen" class="screen">
             <div class="card">
-                <div class="card-header" style="color: var(--primary);"><div class="card-header-title"><i class="fas fa-edit"></i> تعديل قائمة إدخال سابقة</div></div>
+                <div class="card-header"><div class="card-header-title"><i class="fas fa-edit" style="color:var(--primary); background:var(--primary-light)"></i> تعديل فاتورة إدخال سابقة</div></div>
                 <input type="hidden" id="edit-invoice-id">
                 
                 <div class="form-row">
@@ -466,16 +573,16 @@
                     </div>
                 </div>
 
-                <div class="card" style="background: #f8fafc; box-shadow: none; border: 1px dashed var(--primary); padding: 15px;">
+                <div class="card" style="background: var(--bg-color); box-shadow: none; border: 1.5px dashed var(--primary); padding: 20px;">
                     <div class="form-row" style="margin-bottom: 0;">
                         <div class="form-group searchable-select">
-                            <label>المادة:</label>
+                            <label>إضافة مادة جديدة للفاتورة:</label>
                             <input type="text" class="form-control" id="edit-invoice-search" placeholder="ابحث لإضافة مادة..." onfocus="openDropdown('edit-invoice')" oninput="filterDropdown('edit-invoice')" autocomplete="off">
                             <input type="hidden" id="edit-invoice-item-id">
                             <div class="dropdown-list" id="edit-invoice-dropdown"></div>
                         </div>
                         <div class="form-group">
-                            <label>تاريخ الصلاحية:</label>
+                            <label>الصلاحية:</label>
                             <input type="date" class="form-control" id="edit-invoice-expiry">
                         </div>
                         <div class="form-group">
@@ -483,25 +590,26 @@
                             <input type="number" class="form-control" id="edit-invoice-qty" min="0.01" step="0.01">
                         </div>
                         <div class="form-group" style="display: flex; align-items: flex-end;">
-                            <button class="btn btn-secondary btn-block" onclick="addEditInvoiceDraftItem()"><i class="fas fa-plus"></i> إضافة</button>
+                            <button class="btn btn-primary btn-block" onclick="addEditInvoiceDraftItem()"><i class="fas fa-plus"></i> إدراج</button>
                         </div>
                     </div>
                 </div>
 
-                <div style="margin-top: 15px; border: 1px solid var(--border); padding: 15px; border-radius: 10px;">
-                    <h4 style="margin-bottom: 10px; font-size: 0.95rem;">المواد ضمن هذه القائمة:</h4>
+                <div style="margin-top: 20px; border: 1px solid var(--border); padding: 20px; border-radius: var(--radius-lg);">
+                    <h4 style="margin-bottom: 15px; font-size: 1rem; color:var(--text-main);">محتويات الفاتورة (قابلة للحذف):</h4>
                     <div id="edit-draft-container"></div>
                 </div>
-                <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button class="btn btn-primary" id="btn-save-edit" onclick="saveEditedInvoice()"><i class="fas fa-cloud-upload-alt"></i> تحديث القائمة بالكامل</button>
-                    <button class="btn btn-danger" onclick="cancelEditInvoice()"><i class="fas fa-times"></i> إلغاء الرجوع</button>
+                <div style="margin-top: 25px; display: flex; gap: 15px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" id="btn-save-edit" onclick="saveEditedInvoice()"><i class="fas fa-check-circle"></i> اعتماد التحديثات للفاتورة</button>
+                    <button class="btn" style="background:#e2e8f0; color:var(--text-main);" onclick="cancelEditInvoice()"><i class="fas fa-times"></i> تراجع وإلغاء</button>
                 </div>
             </div>
         </div>
 
+        <!-- Edit Withdraw -->
         <div id="edit-withdraw-screen" class="screen">
             <div class="card">
-                <div class="card-header" style="color: var(--danger);"><div class="card-header-title"><i class="fas fa-edit"></i> تعديل قائمة سحب سابقة</div></div>
+                <div class="card-header"><div class="card-header-title"><i class="fas fa-edit" style="color:var(--danger); background:var(--danger-light)"></i> تعديل قائمة سحب سابقة</div></div>
                 <input type="hidden" id="edit-withdraw-id">
                 
                 <div class="form-row">
@@ -511,71 +619,72 @@
                     </div>
                 </div>
 
-                <div class="card" style="background: #f8fafc; box-shadow: none; border: 1px dashed var(--danger); padding: 15px;">
+                <div class="card" style="background: var(--bg-color); box-shadow: none; border: 1.5px dashed var(--danger); padding: 20px;">
                     <div class="form-row" style="margin-bottom: 0;">
                         <div class="form-group searchable-select">
-                            <label>المادة:</label>
+                            <label>إضافة مادة للقائمة:</label>
                             <input type="text" class="form-control" id="edit-withdraw-search" placeholder="ابحث لإضافة مادة..." onfocus="openDropdown('edit-withdraw')" oninput="filterDropdown('edit-withdraw')" autocomplete="off">
                             <input type="hidden" id="edit-withdraw-item-id">
                             <div class="dropdown-list" id="edit-withdraw-dropdown"></div>
                         </div>
                         <div class="form-group">
-                            <label>الكمية:</label>
+                            <label>الكمية المطلوبة:</label>
                             <input type="number" class="form-control" id="edit-withdraw-qty" min="0.01" step="0.01">
                         </div>
                         <div class="form-group" style="display: flex; align-items: flex-end;">
-                            <button class="btn btn-danger btn-block" onclick="addEditWithdrawDraftItem()"><i class="fas fa-plus"></i> إضافة</button>
+                            <button class="btn btn-danger btn-block" onclick="addEditWithdrawDraftItem()"><i class="fas fa-plus"></i> إدراج</button>
                         </div>
                     </div>
                 </div>
 
-                <div style="margin-top: 15px; border: 1px solid var(--border); padding: 15px; border-radius: 10px;">
-                    <h4 style="margin-bottom: 10px; font-size: 0.95rem;">المواد المسحوبة ضمن هذه القائمة:</h4>
+                <div style="margin-top: 20px; border: 1px solid var(--border); padding: 20px; border-radius: var(--radius-lg);">
+                    <h4 style="margin-bottom: 15px; font-size: 1rem; color:var(--text-main);">المواد ضمن قائمة السحب:</h4>
                     <div id="edit-withdraw-draft-container"></div>
                 </div>
-                <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button class="btn btn-danger" id="btn-save-withdraw-edit" onclick="saveEditedWithdraw()"><i class="fas fa-cloud-upload-alt"></i> تحديث القائمة بالكامل</button>
-                    <button class="btn btn-secondary" onclick="cancelEditWithdraw()"><i class="fas fa-times"></i> إلغاء الرجوع</button>
+                <div style="margin-top: 25px; display: flex; gap: 15px; flex-wrap: wrap;">
+                    <button class="btn btn-danger" id="btn-save-withdraw-edit" onclick="saveEditedWithdraw()"><i class="fas fa-check-circle"></i> اعتماد التحديثات للقائمة</button>
+                    <button class="btn" style="background:#e2e8f0; color:var(--text-main);" onclick="cancelEditWithdraw()"><i class="fas fa-times"></i> تراجع وإلغاء</button>
                 </div>
             </div>
         </div>
 
+        <!-- Comprehensive Reports -->
         <div id="reports-screen" class="screen">
             <div class="card">
                 <div class="card-header">
-                    <div class="card-header-title"><i class="fas fa-chart-line"></i> التقارير وحركة المخزون الشاملة</div>
-                    <button class="btn btn-secondary" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> تصدير لـ Excel</button>
+                    <div class="card-header-title"><i class="fas fa-chart-line"></i> تقارير حركة المخزون الشاملة</div>
+                    <button class="btn btn-secondary" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> تصدير إكسيل</button>
                 </div>
-                <div class="form-row" style="background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
+                <div class="form-row" style="background: var(--bg-color); padding: 20px; border-radius: var(--radius-lg); border: 1px solid var(--border);">
                     <div class="form-group">
-                        <label><i class="fas fa-search"></i> بحث عن مادة:</label>
-                        <input type="text" class="form-control" id="report-filter-name" placeholder="اكتب للفلترة..." onkeyup="renderReports()">
+                        <label><i class="fas fa-search text-primary"></i> تصفية باسم المادة:</label>
+                        <input type="text" class="form-control" id="report-filter-name" placeholder="اكتب للبحث..." onkeyup="renderReports()">
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-calendar-alt"></i> من تاريخ:</label>
+                        <label><i class="fas fa-calendar-alt text-primary"></i> من تاريخ:</label>
                         <input type="date" class="form-control" id="report-date-from" onchange="renderReports()">
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-calendar-alt"></i> إلى تاريخ:</label>
+                        <label><i class="fas fa-calendar-alt text-primary"></i> إلى تاريخ:</label>
                         <input type="date" class="form-control" id="report-date-to" onchange="renderReports()">
                     </div>
                 </div>
-                <div class="dashboard-grid" style="margin-top: 15px;">
-                    <div class="dash-stat-card" style="padding: 12px 15px;">
+                <div class="dashboard-grid" style="margin-top: 20px; margin-bottom: 20px;">
+                    <div class="dash-stat-card" style="padding: 15px 20px;">
                         <div class="dash-info" style="text-align: center; width: 100%;">
-                            <h4>إجمالي الإدخالات</h4>
+                            <h4>إجمالي الإدخالات (المدة المحددة)</h4>
                             <h2 id="stat-in" style="color:var(--secondary)">0</h2>
                         </div>
                     </div>
-                    <div class="dash-stat-card" style="padding: 12px 15px;">
+                    <div class="dash-stat-card" style="padding: 15px 20px;">
                         <div class="dash-info" style="text-align: center; width: 100%;">
-                            <h4>إجمالي السحوبات</h4>
+                            <h4>إجمالي السحوبات (المدة المحددة)</h4>
                             <h2 id="stat-out" style="color:var(--danger)">0</h2>
                         </div>
                     </div>
-                    <div class="dash-stat-card" style="padding: 12px 15px;">
+                    <div class="dash-stat-card" style="padding: 15px 20px;">
                         <div class="dash-info" style="text-align: center; width: 100%;">
-                            <h4>صافي الحركة</h4>
+                            <h4>صافي الحركة (الفرق)</h4>
                             <h2 id="stat-net" style="color:var(--primary)">0</h2>
                         </div>
                     </div>
@@ -590,7 +699,7 @@
                                 <th>الوحدة</th>
                                 <th>نوع الحركة</th>
                                 <th>الكمية</th>
-                                <th>المرجع</th>
+                                <th>المرجع (الفاتورة)</th>
                             </tr>
                         </thead>
                         <tbody id="reports-table-body"></tbody>
@@ -599,30 +708,31 @@
             </div>
         </div>
 
+        <!-- Withdraw Reports -->
         <div id="withdraw-reports-screen" class="screen">
             <div class="card">
                 <div class="card-header">
-                    <div class="card-header-title" style="color: var(--danger);"><i class="fas fa-file-export"></i> تقرير السحوبات المفصل</div>
-                    <button class="btn btn-secondary" onclick="exportWithdrawsToExcel()"><i class="fas fa-file-excel"></i> تصدير لـ Excel</button>
+                    <div class="card-header-title"><i class="fas fa-file-export" style="color:var(--danger); background:var(--danger-light);"></i> تقارير السحوبات المفصلة</div>
+                    <button class="btn btn-secondary" onclick="exportWithdrawsToExcel()"><i class="fas fa-file-excel"></i> تصدير إكسيل</button>
                 </div>
-                <div class="form-row" style="background: #fef2f2; padding: 15px; border-radius: 10px; border: 1px dashed #fca5a5;">
+                <div class="form-row" style="background: var(--danger-light); padding: 20px; border-radius: var(--radius-lg); border: 1px dashed #fca5a5;">
                     <div class="form-group">
-                        <label><i class="fas fa-search"></i> بحث عن مادة (مسحوبة):</label>
-                        <input type="text" class="form-control" id="w-report-filter-name" placeholder="اكتب للفلترة..." onkeyup="renderWithdrawReports()">
+                        <label><i class="fas fa-search text-danger"></i> تصفية للمواد المسحوبة:</label>
+                        <input type="text" class="form-control" id="w-report-filter-name" placeholder="اكتب للبحث..." onkeyup="renderWithdrawReports()">
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-calendar-alt"></i> من تاريخ:</label>
+                        <label><i class="fas fa-calendar-alt text-danger"></i> من تاريخ:</label>
                         <input type="date" class="form-control" id="w-report-date-from" onchange="renderWithdrawReports()">
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-calendar-alt"></i> إلى تاريخ:</label>
+                        <label><i class="fas fa-calendar-alt text-danger"></i> إلى تاريخ:</label>
                         <input type="date" class="form-control" id="w-report-date-to" onchange="renderWithdrawReports()">
                     </div>
                 </div>
-                <div class="dashboard-grid" style="margin-top: 15px;">
-                    <div class="dash-stat-card" style="padding: 12px 15px;">
+                <div class="dashboard-grid" style="margin-top: 20px; margin-bottom: 20px;">
+                    <div class="dash-stat-card" style="padding: 15px 20px; max-width: 400px; margin: auto;">
                         <div class="dash-info" style="text-align: center; width: 100%;">
-                            <h4>إجمالي الكميات المسحوبة (للبحث الحالي)</h4>
+                            <h4>إجمالي الكميات المنصرفة (للبحث الحالي)</h4>
                             <h2 id="w-stat-out" style="color:var(--danger)">0</h2>
                         </div>
                     </div>
@@ -634,7 +744,7 @@
                                 <th>التاريخ</th>
                                 <th>المادة</th>
                                 <th>الوحدة</th>
-                                <th>الكمية المسحوبة</th>
+                                <th>الكمية المنصرفة</th>
                                 <th>مرجع السحب</th>
                             </tr>
                         </thead>
@@ -646,38 +756,40 @@
 
     </main>
 
-    <!-- نافذة تسجيل الدخول -->
+    <!-- Modal: Login -->
     <div id="login-modal" class="modal-overlay">
         <div class="modal-card">
-            <i class="fas fa-lock" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 15px;"></i>
-            <h3 style="margin-bottom: 20px; color: var(--dark); font-size: 1.2rem;">صلاحيات المدير مطلوبة</h3>
-            <div class="form-group" style="text-align: right;">
-                <label>كلمة المرور:</label>
-                <input type="password" class="form-control" id="admin-password" placeholder="••••••••" style="text-align: center; letter-spacing: 6px; font-size: 1.3rem;">
+            <div style="background: var(--primary-light); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                <i class="fas fa-shield-alt" style="font-size: 2.5rem; color: var(--primary);"></i>
             </div>
-            <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
-                <button class="btn btn-primary btn-block" onclick="checkPassword()"><i class="fas fa-sign-in-alt"></i> دخول للنظام</button>
-                <button class="btn btn-danger btn-block" onclick="closeModal()">إلغاء</button>
+            <h3 style="margin-bottom: 25px; color: var(--text-main); font-size: 1.3rem; font-weight: 800;">بوابة المدير</h3>
+            <div class="form-group" style="text-align: right; margin-bottom: 25px;">
+                <label>رمز المرور الإداري:</label>
+                <input type="password" class="form-control" id="admin-password" placeholder="••••••••" style="text-align: center; letter-spacing: 8px; font-size: 1.4rem; padding: 15px;">
+            </div>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <button class="btn btn-primary btn-block" onclick="checkPassword()" style="padding: 14px;"><i class="fas fa-unlock"></i> تحقق ودخول</button>
+                <button class="btn btn-block" style="background:#e2e8f0; color:var(--text-main);" onclick="closeModal()">تراجع</button>
             </div>
         </div>
     </div>
 
-    <!-- نافذة سجل حركات المادة الذكية -->
+    <!-- Modal: Item History -->
     <div id="item-history-modal" class="modal-overlay">
-        <div class="modal-card" style="max-width: 800px; width: 95%;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
-                <h3 id="history-modal-title" style="color: var(--dark); font-size: 1.1rem; margin: 0;"><i class="fas fa-history"></i> سجل حركات المادة</h3>
-                <button class="btn btn-danger" onclick="closeHistoryModal()" style="padding: 6px 12px; font-size: 1rem;"><i class="fas fa-times"></i></button>
+        <div class="modal-card" style="max-width: 850px; width: 95%; padding: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 15px;">
+                <h3 id="history-modal-title" style="color: var(--text-main); font-size: 1.2rem; margin: 0; font-weight: 800;"></h3>
+                <button class="btn" onclick="closeHistoryModal()" style="background:#f1f5f9; color:var(--danger); padding: 8px 15px; border-radius: 10px;"><i class="fas fa-times"></i> إغلاق</button>
             </div>
-            <div class="table-responsive" style="max-height: 400px; overflow-y: auto; box-shadow: none; border: 1px solid var(--border);">
-                <table style="min-width: 500px;">
+            <div class="table-responsive" style="max-height: 450px; overflow-y: auto; box-shadow: none; border: 1px solid var(--border);">
+                <table style="min-width: 600px;">
                     <thead>
                         <tr>
                             <th>التاريخ</th>
                             <th>نوع الحركة</th>
                             <th>الكمية</th>
-                            <th>رقم القائمة</th>
-                            <th>إجراء</th>
+                            <th>المرجع (القائمة)</th>
+                            <th>إجراء (تعديل)</th>
                         </tr>
                     </thead>
                     <tbody id="item-history-table-body"></tbody>
@@ -719,11 +831,6 @@
         let pendingAction = null; 
         const PASSCODE = '103130';
 
-        window.toggleSidebar = function() {
-            document.getElementById('sidebar').classList.toggle('active');
-            document.getElementById('sidebar-overlay').classList.toggle('active');
-        };
-
         async function loadCloudData() {
             try {
                 const itemsSnap = await db.collection("items").get();
@@ -743,13 +850,14 @@
                 document.getElementById('invoice-date').valueAsDate = new Date();
                 document.getElementById('withdraw-single-date').valueAsDate = new Date();
                 document.getElementById('withdraw-list-date').valueAsDate = new Date();
+                document.getElementById('adj-date').valueAsDate = new Date();
                 
                 window.renderDashboard();
                 window.renderCatalog();
                 
             } catch (error) {
                 console.error(error);
-                document.getElementById('db-loader').innerHTML = `<h2 style="color:red;"><i class="fas fa-wifi"></i> خطأ في الاتصال بقاعدة البيانات!</h2>`;
+                document.getElementById('db-loader').innerHTML = `<h2 style="color:var(--danger); font-size:1.5rem;"><i class="fas fa-wifi"></i> عذراً، تعذر الاتصال بقاعدة البيانات!</h2><p style="margin-top:10px;">يرجى التحقق من اتصال الإنترنت وتحديث الصفحة.</p>`;
             }
         }
         
@@ -796,8 +904,8 @@
                     window.showScreen(pendingScreen, pendingNavBtn);
                 }
                 
-                showMsg('تم التحقق بنجاح، أهلاً بك', 'success');
-            } else { showMsg('كلمة المرور غير صحيحة', 'error'); }
+                showMsg('تم التحقق بنجاح، مرحباً بك في لوحة الإدارة', 'success');
+            } else { showMsg('رمز المرور غير صحيح، يرجى المحاولة مجدداً', 'error'); }
         };
 
         window.closeModal = function() { 
@@ -809,16 +917,22 @@
             isAuthenticated = false;
             document.getElementById('logout-btn').style.display = 'none';
             window.showScreen('dashboard-screen', document.querySelector('.sidebar .nav-btn'));
-            showMsg('تم إغلاق الجلسة بأمان', 'success');
+            showMsg('تم تسجيل الخروج وقفل الصلاحيات بنجاح', 'success');
         };
 
         function showMsg(msg, type) {
             const box = document.getElementById('alert-box');
-            const icon = type === 'success' ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-exclamation-circle"></i>';
-            document.getElementById('alert-text').innerHTML = `${icon} ${msg}`;
+            const icon = type === 'success' ? '<i class="fas fa-check-circle" style="font-size:1.2rem;"></i>' : '<i class="fas fa-exclamation-triangle" style="font-size:1.2rem;"></i>';
+            document.getElementById('alert-text').innerHTML = `${icon} <span>${msg}</span>`;
             box.className = 'alert-box alert-' + type;
             box.style.display = 'flex';
-            setTimeout(() => { box.style.animation = 'slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) reverse forwards'; setTimeout(()=> {box.style.display = 'none'; box.style.animation='';}, 400); }, 3000);
+            
+            // إعادة ضبط الأنيميشن في حال التكرار السريع
+            box.style.animation = 'none';
+            box.offsetHeight; /* trigger reflow */
+            box.style.animation = null;
+
+            setTimeout(() => { box.style.opacity = '0'; box.style.top = '-60px'; setTimeout(()=> {box.style.display = 'none'; box.style.opacity=''; box.style.top='';}, 300); }, 3500);
         }
 
         window.renderCatalog = function() {
@@ -839,50 +953,60 @@
             });
 
             currentCatalogData = filtered;
-            if (filtered.length === 0) { grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;"><i class="fas fa-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i> لا توجد مواد</div>`; return; }
+            if (filtered.length === 0) { grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 50px; background:white; border-radius:16px; border:1px dashed #cbd5e1;"><i class="fas fa-search" style="font-size: 3rem; margin-bottom: 15px; display: block; opacity:0.3;"></i> لا توجد مواد مطابقة للبحث</div>`; return; }
 
             grid.innerHTML = filtered.map(item => {
                 let stockClass = item.stock <= 0 ? 'stock-zero' : (item.stock <= 10 ? 'stock-low' : 'stock-good');
+                let unitBadge = `<small style="font-size: 0.8rem; font-weight: normal; color:var(--text-muted);">${item.unit}</small>`;
                 return `<div class="item-card">
-                    <div class="item-card-title"><i class="fas fa-cube" style="color: var(--primary);"></i><span>${item.name}</span></div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;"><i class="fas fa-calendar-alt"></i> الصلاحية: ${item.expiry || 'غير محددة'}</div>
+                    <div class="item-card-title"><i class="fas fa-cube" style="color: var(--primary); background:var(--primary-light); padding:8px; border-radius:8px;"></i><span>${item.name}</span></div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;"><i class="fas fa-calendar-alt" style="margin-left:5px;"></i> الصلاحية: ${item.expiry || 'غير محددة'}</div>
                     <div class="item-card-details">
-                        <span style="font-weight: 700;">المخزون المتوفر:</span>
-                        <span class="item-stock ${stockClass}">${item.stock} <small style="font-size: 0.8rem; font-weight: normal;">${item.unit}</small></span>
+                        <span style="font-weight: 700;">المخزون الفعلي:</span>
+                        <span class="item-stock ${stockClass}">${item.stock} ${unitBadge}</span>
                     </div>
-                    <button class="btn btn-secondary btn-block" style="margin-top: 15px; padding: 8px; font-size: 0.85rem;" onclick="viewItemHistory('${item.id}', '${item.name}')"><i class="fas fa-history"></i> عرض سجل الحركات</button>
+                    <button class="btn btn-secondary btn-block" style="margin-top: 15px; padding: 10px; font-size: 0.9rem; background:var(--bg-color); color:var(--text-main); border:1px solid var(--border);" onclick="viewItemHistory('${item.id}', '${item.name}')"><i class="fas fa-history text-primary"></i> عرض سجل الحركة</button>
                 </div>`;
             }).join('');
         };
 
         window.viewItemHistory = function(itemId, itemName) {
-            document.getElementById('history-modal-title').innerHTML = `<i class="fas fa-history"></i> سجل حركات: ${itemName}`;
+            document.getElementById('history-modal-title').innerHTML = `<i class="fas fa-history text-primary"></i> سجل حركات الصنف: <span style="color:var(--primary);">${itemName}</span>`;
             const tbody = document.getElementById('item-history-table-body');
             
             let itemTransactions = transactions.filter(t => t.itemId === itemId);
             itemTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
             
             if(itemTransactions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد حركات سابقة لهذه المادة</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">لا توجد حركات سابقة مقيدة لهذه المادة</td></tr>';
             } else {
                 tbody.innerHTML = itemTransactions.map(t => {
                     const isAdd = t.type === 'add';
-                    const typeBadge = isAdd ? '<span class="badge badge-orange" style="background:#dcfce7; color:#166534">إضافة</span>' : '<span class="badge badge-red" style="background:#fee2e2; color:#991b1b">سحب</span>';
+                    const isAdj = t.invoiceId === 'تسوية جردية';
+                    
+                    let typeBadge = '';
+                    if(isAdj) {
+                        typeBadge = `<span class="badge badge-orange"><i class="fas fa-balance-scale"></i> تسوية جردية</span>`;
+                    } else if (isAdd) {
+                        typeBadge = `<span class="badge badge-green"><i class="fas fa-arrow-down"></i> إدخال توريد</span>`;
+                    } else {
+                        typeBadge = `<span class="badge badge-red"><i class="fas fa-arrow-up"></i> سحب وصرف</span>`;
+                    }
                     
                     let editBtn = '';
-                    if (isAdd && t.invoiceId) {
-                        editBtn = `<button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="openEditFromHistory('${t.invoiceId}', 'add')"><i class="fas fa-edit"></i> تعديل القائمة</button>`;
-                    } else if (!isAdd && t.invoiceId) {
-                        editBtn = `<button class="btn btn-danger" style="padding: 4px 8px; font-size: 0.8rem;" onclick="openEditFromHistory('${t.invoiceId}', 'withdraw')"><i class="fas fa-edit"></i> تعديل القائمة</button>`;
+                    if (isAdd && t.invoiceId && !isAdj) {
+                        editBtn = `<button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="openEditFromHistory('${t.invoiceId}', 'add')"><i class="fas fa-edit"></i> تعديل</button>`;
+                    } else if (!isAdd && t.invoiceId && !isAdj) {
+                        editBtn = `<button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.85rem;" onclick="openEditFromHistory('${t.invoiceId}', 'withdraw')"><i class="fas fa-edit"></i> تعديل</button>`;
                     } else {
-                        editBtn = '<span style="color:var(--text-muted); font-size:0.8rem;">حركة مباشرة قديمة</span>';
+                        editBtn = `<span style="color:var(--text-muted); font-size:0.85rem; background:var(--bg-color); padding:4px 10px; border-radius:6px;">${isAdj ? 'حركة تسوية مغلقة' : 'حركة مباشرة قديمة'}</span>`;
                     }
 
                     return `<tr>
-                        <td>${t.invoiceDate}</td>
+                        <td style="font-weight:600;">${t.invoiceDate}</td>
                         <td>${typeBadge}</td>
-                        <td><strong>${t.qty}</strong></td>
-                        <td style="font-size:0.8rem; color:var(--text-muted);">${t.invoiceId || 'مباشر'}</td>
+                        <td style="font-size:1.1rem;"><strong>${t.qty}</strong></td>
+                        <td style="font-size:0.85rem; color:var(--text-muted); font-family: monospace;">${t.invoiceId || 'مباشر'}</td>
                         <td>${editBtn}</td>
                     </tr>`;
                 }).join('');
@@ -910,12 +1034,12 @@
         };
 
         window.exportCatalogToExcel = function() {
-            if(currentCatalogData.length === 0) { showMsg('لا توجد بيانات للتصدير', 'error'); return; }
-            const dataToExport = currentCatalogData.map(i => ({ 'اسم المادة': i.name, 'الكمية المتوفرة': i.stock, 'وحدة القياس': i.unit, 'تاريخ الصلاحية': i.expiry || 'غير محدد' }));
+            if(currentCatalogData.length === 0) { showMsg('لا توجد بيانات متاحة للتصدير', 'error'); return; }
+            const dataToExport = currentCatalogData.map(i => ({ 'اسم الصنف': i.name, 'الكمية المتوفرة (الرصيد)': i.stock, 'وحدة القياس': i.unit, 'تاريخ الصلاحية': i.expiry || 'غير محدد' }));
             const ws = XLSX.utils.json_to_sheet(dataToExport);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "المخزون");
-            XLSX.writeFile(wb, "تقرير_المخزون.xlsx");
+            XLSX.utils.book_append_sheet(wb, ws, "المخزون الحالي");
+            XLSX.writeFile(wb, "تقرير_المخزون_النهائي.xlsx");
         };
 
         window.renderDashboard = function() {
@@ -930,8 +1054,8 @@
             const lowStockItems = items.filter(i => i.stock <= 10);
             const expiringItems = items.filter(i => i.expiry && new Date(i.expiry) <= thirtyDays);
 
-            document.getElementById('low-stock-list').innerHTML = lowStockItems.length === 0 ? `<li style="justify-content:center; color:var(--secondary); font-weight:bold;"><i class="fas fa-check-circle"></i> المخزون ممتاز</li>` : lowStockItems.map(i => `<li><div><strong>${i.name}</strong> <br><small>${i.unit}</small></div><span class="badge ${i.stock <= 0 ? 'badge-red' : 'badge-orange'}">${i.stock <= 0 ? 'نفدت' : `متبقي: ${i.stock}`}</span></li>`).join('');
-            document.getElementById('expiring-list').innerHTML = expiringItems.length === 0 ? `<li style="justify-content:center; color:var(--secondary); font-weight:bold;"><i class="fas fa-check-circle"></i> جميع المواد آمنة</li>` : expiringItems.map(i => { const isExpired = new Date(i.expiry) < today; return `<li><div><strong>${i.name}</strong></div><span class="badge ${isExpired ? 'badge-red' : 'badge-orange'}">${isExpired ? 'منتهية الصلاحية!' : `تاريخ: ${i.expiry}`}</span></li>`; }).join('');
+            document.getElementById('low-stock-list').innerHTML = lowStockItems.length === 0 ? `<li style="justify-content:center; color:var(--secondary); font-weight:bold; padding:20px;"><i class="fas fa-check-circle" style="margin-left:8px; font-size:1.2rem;"></i> الأرصدة ممتازة لجميع المواد</li>` : lowStockItems.map(i => `<li><div><strong style="color:var(--text-main);">${i.name}</strong> <br><small style="color:var(--text-muted);">${i.unit}</small></div><span class="badge ${i.stock <= 0 ? 'badge-red' : 'badge-orange'}">${i.stock <= 0 ? 'الرصيد 0 (نفدت)' : `متبقي: ${i.stock}`}</span></li>`).join('');
+            document.getElementById('expiring-list').innerHTML = expiringItems.length === 0 ? `<li style="justify-content:center; color:var(--secondary); font-weight:bold; padding:20px;"><i class="fas fa-check-circle" style="margin-left:8px; font-size:1.2rem;"></i> لا توجد مواد قاربت على الانتهاء</li>` : expiringItems.map(i => { const isExpired = new Date(i.expiry) < today; return `<li><div><strong style="color:var(--text-main);">${i.name}</strong></div><span class="badge ${isExpired ? 'badge-red' : 'badge-orange'}">${isExpired ? 'صلاحية منتهية!' : `تاريخ: ${i.expiry}`}</span></li>`; }).join('');
         };
 
         document.addEventListener('click', function(e) { if (!e.target.closest('.searchable-select')) { document.querySelectorAll('.dropdown-list').forEach(list => list.classList.remove('show')); } });
@@ -945,11 +1069,11 @@
             filtered.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
             listEl.innerHTML = '';
             
-            if(filtered.length === 0) { listEl.innerHTML = '<div class="dropdown-item" style="color:var(--danger); justify-content:center;">لا توجد مواد مطابقة</div>'; return; }
+            if(filtered.length === 0) { listEl.innerHTML = '<div class="dropdown-item" style="color:var(--danger); justify-content:center; background:var(--danger-light);">الصنف غير موجود بالقاعدة</div>'; return; }
             
             filtered.forEach(item => {
                 const div = document.createElement('div'); div.className = 'dropdown-item';
-                div.innerHTML = `<span>${item.name}</span><span class="item-info">متوفر: ${item.stock} ${item.unit}</span>`;
+                div.innerHTML = `<span>${item.name}</span><span class="item-info">متوفر: <strong>${item.stock}</strong> ${item.unit}</span>`;
                 div.onclick = () => {
                     document.getElementById(`${type}-search`).value = item.name;
                     
@@ -962,6 +1086,9 @@
                         document.getElementById('edit-item-form').style.display = 'block';
                         document.getElementById('update-item-name').value = item.name;
                         document.getElementById('update-item-unit').value = item.unit || 'قطعة';
+                    } else if (type === 'adj') {
+                        document.getElementById('adj-current-qty').value = item.stock;
+                        document.getElementById('adj-new-qty').focus();
                     }
                 };
                 listEl.appendChild(div);
@@ -971,8 +1098,8 @@
         window.addNewItem = async function() {
             const name = document.getElementById('new-item-name').value.trim();
             const unit = document.getElementById('new-item-unit').value;
-            if (!name) { showMsg('يرجى كتابة الاسم', 'error'); return; }
-            if (items.find(i => i.name.toLowerCase() === name.toLowerCase())) { showMsg('المادة معرفة مسبقاً!', 'error'); return; }
+            if (!name) { showMsg('يرجى كتابة اسم الصنف لتسجيله', 'error'); return; }
+            if (items.find(i => i.name.toLowerCase() === name.toLowerCase())) { showMsg('تنبيه: هذه المادة مسجلة مسبقاً في النظام!', 'error'); return; }
 
             const btn = document.getElementById('btn-add-item'); btn.disabled = true;
             const newItem = { id: 'ITM-' + Date.now(), name: name, expiry: '', unit: unit, stock: 0 };
@@ -980,9 +1107,9 @@
                 await db.collection("items").doc(newItem.id).set(newItem);
                 items.push(newItem);
                 document.getElementById('new-item-name').value = '';
-                showMsg('تم حفظ المادة بنجاح', 'success');
+                showMsg('تم تعريف المادة وحفظها بقاعدة البيانات بنجاح', 'success');
                 window.renderDashboard(); window.renderCatalog();
-            } catch(e) { showMsg('حدث خطأ في الاتصال!', 'error'); }
+            } catch(e) { showMsg('فشل الإرسال للسحابة، تحقق من الاتصال!', 'error'); }
             btn.disabled = false;
         };
 
@@ -991,14 +1118,15 @@
             const newName = document.getElementById('update-item-name').value.trim();
             const newUnit = document.getElementById('update-item-unit').value;
 
-            if (!id || !newName) { showMsg('يرجى اختيار مادة وإدخال الاسم', 'error'); return; }
+            if (!id || !newName) { showMsg('الرجاء اختيار المادة والتأكد من إدخال الاسم الجديد', 'error'); return; }
             const btn = document.getElementById('btn-update-item'); btn.disabled = true;
 
             try {
                 await db.collection("items").doc(id).update({ name: newName, unit: newUnit });
                 const itemIndex = items.findIndex(i => i.id === id);
                 if (itemIndex > -1) { items[itemIndex].name = newName; items[itemIndex].unit = newUnit; }
-                showMsg('تم التحديث بنجاح', 'success');
+                
+                showMsg('تم تحديث بطاقة المادة بنجاح', 'success');
                 
                 document.getElementById('edit-search').value = ''; 
                 document.getElementById('edit-item-id').value = '';
@@ -1006,9 +1134,78 @@
                 
                 window.renderDashboard(); window.renderCatalog();
             } catch(e) { 
-                showMsg('حدث خطأ في التحديث السحابي', 'error'); 
+                showMsg('حدث خطأ في التحديث عبر السحابة', 'error'); 
                 console.error(e); 
             }
+            btn.disabled = false;
+        };
+
+        // دالة التسوية الجردية
+        window.submitAdjustment = async function() {
+            const id = document.getElementById('adj-item-id').value;
+            const newQty = parseFloat(document.getElementById('adj-new-qty').value);
+            const adjDate = document.getElementById('adj-date').value;
+            const currentQtyInput = document.getElementById('adj-current-qty').value;
+
+            if (!id || isNaN(newQty) || newQty < 0 || !adjDate || currentQtyInput === '') { 
+                showMsg('يرجى التأكد من اختيار الصنف وإدخال نتيجة الجرد الواقعي بشكل صحيح', 'error'); 
+                return; 
+            }
+
+            const item = items.find(i => i.id === id);
+            if (!item) return;
+
+            const oldQty = item.stock;
+            const diff = newQty - oldQty;
+
+            if (diff === 0) {
+                showMsg('الجرد الواقعي مطابق للرصيد الدفتري، لا توجد فروقات للتسوية', 'success');
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit-adj');
+            btn.disabled = true;
+
+            try {
+                const batch = db.batch();
+                
+                batch.update(db.collection("items").doc(item.id), { stock: newQty });
+
+                const trxType = diff > 0 ? 'add' : 'withdraw';
+                const trxObj = { 
+                    id: 'TRX-' + Math.random().toString(36).substr(2, 9), 
+                    invoiceId: 'تسوية جردية', 
+                    type: trxType, 
+                    itemId: item.id, 
+                    itemName: item.name, 
+                    itemUnit: item.unit, 
+                    itemExpiry: item.expiry || '', 
+                    qty: Math.abs(diff), 
+                    date: new Date().toISOString(), 
+                    invoiceDate: adjDate 
+                };
+                
+                batch.set(db.collection("transactions").doc(trxObj.id), trxObj);
+
+                await batch.commit();
+
+                item.stock = newQty;
+                transactions.push(trxObj);
+
+                document.getElementById('adj-search').value = '';
+                document.getElementById('adj-item-id').value = '';
+                document.getElementById('adj-current-qty').value = '';
+                document.getElementById('adj-new-qty').value = '';
+
+                showMsg('تم اعتماد التسوية الجردية وتعديل الرصيد بنجاح', 'success');
+                window.renderDashboard(); 
+                window.renderCatalog();
+                
+            } catch(e) { 
+                showMsg('حدث خطأ أثناء حفظ حركات التسوية في السحابة', 'error'); 
+                console.error(e);
+            }
+            
             btn.disabled = false;
         };
 
@@ -1016,7 +1213,7 @@
             const id = document.getElementById('invoice-item-id').value;
             const qty = parseFloat(document.getElementById('invoice-qty').value);
             const expiry = document.getElementById('invoice-expiry').value;
-            if (!id || isNaN(qty) || qty <= 0) { showMsg('اختر مادة وكمية صحيحة', 'error'); return; }
+            if (!id || isNaN(qty) || qty <= 0) { showMsg('يرجى اختيار مادة وإدخال كمية صحيحة أكبر من الصفر', 'error'); return; }
             
             const item = items.find(i => i.id === id);
             const existingIndex = draftInvoiceItems.findIndex(d => d.itemId === id);
@@ -1035,14 +1232,14 @@
 
         window.renderDraftList = function() {
             const container = document.getElementById('draft-list-container');
-            if (draftInvoiceItems.length === 0) { container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 15px;">لم يتم إضافة مواد بعد</div>'; return; }
-            container.innerHTML = draftInvoiceItems.map((d, index) => `<div style="display:flex; justify-content:space-between; padding:10px 12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; margin-bottom:8px; font-size:0.9rem;"><div><strong style="color:var(--secondary);">${d.itemName}</strong> - ${d.qty} ${d.itemUnit} <br><small>صلاحية: ${d.expiry || 'بدون'}</small></div><div style="color:var(--danger); cursor:pointer; font-weight: bold;" onclick="removeDraftItem(${index})"><i class="fas fa-trash"></i></div></div>`).join('');
+            if (draftInvoiceItems.length === 0) { container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px; background:#f8fafc; border-radius:10px;"><i class="fas fa-box" style="font-size:2rem; margin-bottom:10px; display:block; opacity:0.5;"></i> الفاتورة فارغة</div>'; return; }
+            container.innerHTML = draftInvoiceItems.map((d, index) => `<div style="display:flex; justify-content:space-between; align-items:center; padding:15px 18px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; margin-bottom:10px; font-size:0.95rem; box-shadow:var(--shadow-sm);"><div style="line-height:1.6;"><strong style="color:var(--secondary); font-size:1.05rem;">${d.itemName}</strong> <br> الكمية المدرجة: <span style="font-weight:bold; color:var(--text-main);">${d.qty}</span> ${d.itemUnit} <br><small style="color:var(--text-muted);"><i class="fas fa-clock"></i> صلاحية: ${d.expiry || 'لا يوجد'}</small></div><button class="btn" style="background:#fee2e2; color:var(--danger); padding:10px; border-radius:10px;" onclick="removeDraftItem(${index})" title="حذف المادة من القائمة"><i class="fas fa-trash"></i></button></div>`).join('');
         };
 
         window.saveInvoice = async function() {
             const iDate = document.getElementById('invoice-date').value;
-            if (draftInvoiceItems.length === 0) { showMsg('القائمة فارغة!', 'error'); return; }
-            if(!iDate) { showMsg('حدد تاريخ الإدخال', 'error'); return; }
+            if (draftInvoiceItems.length === 0) { showMsg('لا يمكن حفظ فاتورة فارغة!', 'error'); return; }
+            if(!iDate) { showMsg('الرجاء تحديد تاريخ الإدخال والتوريد', 'error'); return; }
 
             const btn = document.getElementById('btn-save-invoice'); btn.disabled = true;
             const invoice = { id: 'INV-' + Date.now(), date: iDate, createdAt: new Date().toISOString(), items: draftInvoiceItems, itemCount: draftInvoiceItems.length };
@@ -1065,8 +1262,8 @@
                 await batch.commit();
                 invoices.push(invoice);
                 draftInvoiceItems = []; window.renderDraftList();
-                showMsg('تم حفظ القائمة بنجاح', 'success'); window.renderDashboard(); window.renderCatalog();
-            } catch(e) { showMsg('خطأ أثناء الرفع!', 'error'); } 
+                showMsg('تم ترحيل الفاتورة وحفظها في النظام السحابي بنجاح', 'success'); window.renderDashboard(); window.renderCatalog();
+            } catch(e) { showMsg('فشل ترحيل البيانات، تحقق من الإنترنت!', 'error'); } 
             btn.disabled = false;
         };
 
@@ -1076,21 +1273,21 @@
             const sortedInvoices = [...invoices].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
             sortedInvoices.forEach(inv => {
                 html += `<tr>
-                    <td><strong>${inv.id}</strong></td>
-                    <td>${inv.date}</td>
-                    <td><span class="badge badge-orange">${inv.itemCount} مواد</span></td>
-                    <td style="color:var(--text-muted)">${new Date(inv.createdAt).toLocaleString()}</td>
-                    <td style="display: flex; gap: 5px; justify-content: flex-end;">
-                        <button class="btn btn-primary" style="padding: 6px 10px; font-size: 0.8rem;" onclick="editInvoice('${inv.id}')"><i class="fas fa-edit"></i> تعديل</button>
-                        <button class="btn btn-danger" style="padding: 6px 10px; font-size: 0.8rem; background-color: var(--danger);" onclick="deleteInvoice('${inv.id}')"><i class="fas fa-trash"></i> حذف</button>
+                    <td style="font-family:monospace; color:var(--text-main); font-weight:700;">${inv.id}</td>
+                    <td style="font-weight:600;">${inv.date}</td>
+                    <td><span class="badge badge-green">${inv.itemCount} مواد مدرجة</span></td>
+                    <td style="color:var(--text-muted); font-size:0.85rem;"><i class="fas fa-cloud-upload-alt" style="margin-left:4px;"></i>${new Date(inv.createdAt).toLocaleString()}</td>
+                    <td style="display: flex; gap: 8px; justify-content: flex-end;">
+                        <button class="btn btn-primary" style="padding: 8px 12px; font-size: 0.85rem;" onclick="editInvoice('${inv.id}')"><i class="fas fa-edit"></i> تعديل</button>
+                        <button class="btn btn-danger" style="padding: 8px 12px; font-size: 0.85rem;" onclick="deleteInvoice('${inv.id}')"><i class="fas fa-trash"></i> إلغاء</button>
                     </td>
                 </tr>`;
             });
-            tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">لا توجد سجلات إدخال</td></tr>';
+            tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">لا توجد أي سجلات توريد وإدخال بعد</td></tr>';
         };
 
         window.deleteInvoice = async function(invId) {
-            if(!confirm('هل أنت متأكد من حذف قائمة الإدخال هذه؟ سيتم خصم الكميات المضافة منها من المخزون الحالي.')) return;
+            if(!confirm('تحذير: هل أنت متأكد من حذف فاتورة الإدخال بأكملها؟ سيقوم النظام بخصم الكميات المدرجة بها من الرصيد الحالي للمخزون.')) return;
             
             const invIndex = invoices.findIndex(i => i.id === invId);
             if(invIndex === -1) return;
@@ -1118,12 +1315,12 @@
                 invoices.splice(invIndex, 1);
                 transactions = transactions.filter(t => t.invoiceId !== invId);
                 
-                showMsg('تم حذف قائمة الإدخال واسترجاع المخزون بنجاح', 'success');
+                showMsg('تم حذف الفاتورة وتصحيح الأرصدة بنجاح', 'success');
                 window.renderInvoicesHistory();
                 window.renderDashboard(); 
                 window.renderCatalog();
             } catch(e) {
-                showMsg('حدث خطأ أثناء الحذف والتزامن مع السحابة', 'error');
+                showMsg('حدث خطأ أثناء تنفيذ أمر الحذف السحابي', 'error');
                 console.error(e);
             }
         };
@@ -1142,7 +1339,7 @@
             const id = document.getElementById('edit-invoice-item-id').value;
             const qty = parseFloat(document.getElementById('edit-invoice-qty').value);
             const expiry = document.getElementById('edit-invoice-expiry').value;
-            if (!id || isNaN(qty) || qty <= 0) { showMsg('اختر مادة وكمية صحيحة', 'error'); return; }
+            if (!id || isNaN(qty) || qty <= 0) { showMsg('الرجاء التأكد من التحديد والكمية', 'error'); return; }
             const item = items.find(i => i.id === id);
             
             const existingIndex = editDraftItems.findIndex(d => d.itemId === id);
@@ -1160,8 +1357,8 @@
 
         window.renderEditDraftList = function() {
             const container = document.getElementById('edit-draft-container');
-            if (editDraftItems.length === 0) { container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 15px;">القائمة فارغة</div>'; return; }
-            container.innerHTML = editDraftItems.map((d, index) => `<div style="display:flex; justify-content:space-between; padding:10px 12px; background:#f8fafc; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; font-size:0.9rem;"><div><strong>${d.itemName}</strong> - ${d.qty} ${d.itemUnit} <br><small>صلاحية: ${d.expiry||'بدون'}</small></div><div style="color:var(--danger); cursor:pointer;" onclick="removeEditInvoiceDraftItem(${index})"><i class="fas fa-trash"></i></div></div>`).join('');
+            if (editDraftItems.length === 0) { container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px; background:#f8fafc; border-radius:10px;">لا توجد مواد ضمن هذه الفاتورة</div>'; return; }
+            container.innerHTML = editDraftItems.map((d, index) => `<div style="display:flex; justify-content:space-between; align-items:center; padding:15px; background:white; border:1px solid var(--border); border-radius:12px; margin-bottom:10px; box-shadow:var(--shadow-sm);"><div style="line-height:1.6;"><strong style="font-size:1.05rem; color:var(--text-main);">${d.itemName}</strong> <br> الكمية: <span style="font-weight:bold;">${d.qty}</span> ${d.itemUnit} <br><small style="color:var(--text-muted);">صلاحية: ${d.expiry||'غير محددة'}</small></div><button class="btn" style="background:#fee2e2; color:var(--danger); padding:10px;" onclick="removeEditInvoiceDraftItem(${index})"><i class="fas fa-trash"></i></button></div>`).join('');
         };
 
         window.cancelEditInvoice = function() { window.showScreen('invoices-history-screen'); };
@@ -1169,7 +1366,8 @@
         window.saveEditedInvoice = async function() {
             const id = document.getElementById('edit-invoice-id').value;
             const newDate = document.getElementById('edit-invoice-date').value;
-            if(!newDate) { showMsg('الرجاء تحديد التاريخ', 'error'); return; }
+            if(!newDate) { showMsg('يرجى تحديد تاريخ الفاتورة', 'error'); return; }
+            if(editDraftItems.length === 0) { showMsg('لا يمكن حفظ فاتورة خالية من المواد', 'error'); return; }
             const btn = document.getElementById('btn-save-edit'); btn.disabled = true;
 
             try {
@@ -1199,9 +1397,9 @@
                 batch.update(db.collection("invoices").doc(id), { date: newDate, items: editDraftItems, itemCount: editDraftItems.length });
 
                 await batch.commit();
-                showMsg('تم تحديث قائمة الإدخال بنجاح', 'success');
+                showMsg('تم اعتماد وتحديث الفاتورة بنجاح', 'success');
                 setTimeout(() => location.reload(), 1500); 
-            } catch(e) { showMsg('حدث خطأ أثناء التحديث', 'error'); console.error(e); btn.disabled = false; }
+            } catch(e) { showMsg('خطأ أثناء مزامنة التحديث السحابي', 'error'); console.error(e); btn.disabled = false; }
         };
 
         window.submitWithdraw = async function() {
@@ -1209,10 +1407,10 @@
             const qty = parseFloat(document.getElementById('withdraw-qty').value);
             const wDate = document.getElementById('withdraw-single-date').value;
             
-            if (!id || isNaN(qty) || qty <= 0 || !wDate) { showMsg('بيانات غير صحيحة', 'error'); return; }
+            if (!id || isNaN(qty) || qty <= 0 || !wDate) { showMsg('يوجد نقص أو خطأ في البيانات المدخلة', 'error'); return; }
             
             const item = items.find(i => i.id === id);
-            if (item.stock < qty) { showMsg(`المخزون غير كافٍ!`, 'error'); return; }
+            if (item.stock < qty) { showMsg(`عملية مرفوضة! الرصيد المتوفر (${item.stock}) لا يغطي طلب السحب.`, 'error'); return; }
 
             const btn = document.getElementById('btn-withdraw'); 
             btn.disabled = true;
@@ -1239,22 +1437,22 @@
                 transactions.push(trxObj);
 
                 document.getElementById('withdraw-search').value = ''; document.getElementById('withdraw-qty').value = '';
-                showMsg('تم السحب بنجاح وأدرج في السجلات', 'success'); 
+                showMsg('تم اعتماد صرف المادة وتقييدها بالسجلات بنجاح', 'success'); 
                 window.renderDashboard(); window.renderCatalog();
                 
-            } catch(e) { showMsg('خطأ في الاتصال بقاعدة البيانات', 'error'); item.stock += qty; }
+            } catch(e) { showMsg('تعذر الإرسال للقاعدة السحابية', 'error'); item.stock += qty; }
             btn.disabled = false;
         };
 
         window.addWithdrawDraftItem = function() {
             const id = document.getElementById('withdraw-list-item-id').value;
             const qty = parseFloat(document.getElementById('withdraw-list-qty').value);
-            if (!id || isNaN(qty) || qty <= 0) return;
+            if (!id || isNaN(qty) || qty <= 0) { showMsg('يرجى تحديد مادة وإدخال كمية صحيحة للصرف', 'error'); return; }
             const item = items.find(i => i.id === id);
             let alreadyDrafted = 0;
             const existingIndex = draftWithdrawItems.findIndex(d => d.itemId === id);
             if (existingIndex > -1) alreadyDrafted = draftWithdrawItems[existingIndex].qty;
-            if (item.stock < (alreadyDrafted + qty)) { showMsg(`تجاوز المخزون! المتبقي: ${item.stock}`, 'error'); return; }
+            if (item.stock < (alreadyDrafted + qty)) { showMsg(`تجاوز حد الأرصدة! أقصى كمية متبقية قابلة للصرف: ${item.stock - alreadyDrafted}`, 'error'); return; }
             if(existingIndex > -1) draftWithdrawItems[existingIndex].qty += qty;
             else draftWithdrawItems.push({ itemId: id, itemName: item.name, itemUnit: item.unit, qty: qty });
             document.getElementById('withdraw-list-search').value = ''; document.getElementById('withdraw-list-qty').value = '';
@@ -1265,13 +1463,14 @@
 
         window.renderWithdrawDraftList = function() {
             const container = document.getElementById('withdraw-draft-list-container');
-            if (draftWithdrawItems.length === 0) { container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 15px;">لم يتم إضافة مواد بعد</div>'; return; }
-            container.innerHTML = draftWithdrawItems.map((d, index) => `<div style="display:flex; justify-content:space-between; padding:10px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; margin-bottom:8px; font-size:0.9rem;"><div><strong style="color:var(--danger);">${d.itemName}</strong> - ${d.qty} ${d.itemUnit}</div><div style="color:var(--danger); cursor:pointer;" onclick="removeWithdrawDraftItem(${index})"><i class="fas fa-trash"></i></div></div>`).join('');
+            if (draftWithdrawItems.length === 0) { container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px; background:#f8fafc; border-radius:10px;"><i class="fas fa-box-open" style="font-size:2rem; margin-bottom:10px; display:block; opacity:0.5;"></i> السلة فارغة</div>'; return; }
+            container.innerHTML = draftWithdrawItems.map((d, index) => `<div style="display:flex; justify-content:space-between; align-items:center; padding:15px 18px; background:#fef2f2; border:1px solid #fecaca; border-radius:12px; margin-bottom:10px; font-size:0.95rem; box-shadow:var(--shadow-sm);"><div style="line-height:1.6;"><strong style="color:var(--danger); font-size:1.05rem;">${d.itemName}</strong> <br> مطلوب صرف: <span style="font-weight:bold; color:var(--text-main);">${d.qty}</span> ${d.itemUnit}</div><button class="btn" style="background:white; color:var(--danger); border:1px solid #fecaca; padding:10px; border-radius:10px;" onclick="removeWithdrawDraftItem(${index})" title="إزالة من القائمة"><i class="fas fa-trash"></i></button></div>`).join('');
         };
 
         window.saveWithdrawList = async function() {
             const wDate = document.getElementById('withdraw-list-date').value;
-            if (draftWithdrawItems.length === 0 || !wDate) return;
+            if (draftWithdrawItems.length === 0) { showMsg('عذراً، القائمة الحالية فارغة ولا يمكن حفظها.', 'error'); return; }
+            if(!wDate) { showMsg('يرجى تحديد تاريخ السحب أولاً.', 'error'); return; }
             const btn = document.getElementById('btn-save-withdraw-list'); btn.disabled = true;
             const listId = 'W-LIST-' + Date.now();
             const withdrawListObj = { id: listId, date: wDate, createdAt: new Date().toISOString(), items: draftWithdrawItems, itemCount: draftWithdrawItems.length };
@@ -1280,7 +1479,7 @@
                 const batch = db.batch();
                 for (let d of draftWithdrawItems) {
                     const itm = items.find(i => i.id === d.itemId);
-                    if (!itm || itm.stock < d.qty) { showMsg(`مخزون "${d.itemName}" غير كافٍ.`, 'error'); btn.disabled = false; return; }
+                    if (!itm || itm.stock < d.qty) { showMsg(`رصيد مادة "${d.itemName}" انخفض بشكل مفاجئ ולא يكفي الآن.`, 'error'); btn.disabled = false; return; }
                 }
 
                 batch.set(db.collection("withdrawals").doc(listId), withdrawListObj);
@@ -1299,8 +1498,8 @@
                 await batch.commit();
                 withdrawalsList.push(withdrawListObj);
                 draftWithdrawItems = []; window.renderWithdrawDraftList();
-                showMsg('تم سحب القائمة بنجاح', 'success'); window.renderDashboard(); window.renderCatalog();
-            } catch(e) { showMsg('خطأ أثناء الرفع!', 'error'); } 
+                showMsg('تم صرف القائمة وتقييد جميع الحركات بنجاح', 'success'); window.renderDashboard(); window.renderCatalog();
+            } catch(e) { showMsg('فشل الإرسال للسحابة!', 'error'); } 
             btn.disabled = false;
         };
 
@@ -1310,21 +1509,21 @@
             const sorted = [...withdrawalsList].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
             sorted.forEach(w => {
                 html += `<tr>
-                    <td><strong>${w.id}</strong></td>
-                    <td>${w.date}</td>
-                    <td><span class="badge badge-orange">${w.itemCount} مواد</span></td>
-                    <td style="color:var(--text-muted)">${new Date(w.createdAt).toLocaleString()}</td>
-                    <td style="display: flex; gap: 5px; justify-content: flex-end;">
-                        <button class="btn btn-danger" style="padding: 6px 10px; font-size: 0.8rem;" onclick="editWithdraw('${w.id}')"><i class="fas fa-edit"></i> تعديل</button>
-                        <button class="btn btn-danger" style="padding: 6px 10px; font-size: 0.8rem; background-color: #991b1b;" onclick="deleteWithdraw('${w.id}')"><i class="fas fa-trash"></i> حذف</button>
+                    <td style="font-family:monospace; color:var(--text-main); font-weight:700;">${w.id}</td>
+                    <td style="font-weight:600;">${w.date}</td>
+                    <td><span class="badge badge-orange">${w.itemCount} مواد مصروفة</span></td>
+                    <td style="color:var(--text-muted); font-size:0.85rem;"><i class="fas fa-cloud-upload-alt" style="margin-left:4px;"></i>${new Date(w.createdAt).toLocaleString()}</td>
+                    <td style="display: flex; gap: 8px; justify-content: flex-end;">
+                        <button class="btn btn-primary" style="padding: 8px 12px; font-size: 0.85rem;" onclick="editWithdraw('${w.id}')"><i class="fas fa-edit"></i> تعديل</button>
+                        <button class="btn btn-danger" style="padding: 8px 12px; font-size: 0.85rem;" onclick="deleteWithdraw('${w.id}')"><i class="fas fa-trash"></i> إلغاء</button>
                     </td>
                 </tr>`;
             });
-            tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">لا توجد سجلات سحب</td></tr>';
+            tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">لا توجد أي سجلات سحب وصرف في النظام</td></tr>';
         };
 
         window.deleteWithdraw = async function(wId) {
-            if(!confirm('هل أنت متأكد من حذف قائمة السحب هذه؟ سيتم إرجاع الكميات المسحوبة إلى المخزون الحالي.')) return;
+            if(!confirm('تأكيد هام: عند إلغاء قائمة السحب سيتم إرجاع جميع المواد المصروفة إلى المخزون. هل تود الاستمرار؟')) return;
             
             const wIndex = withdrawalsList.findIndex(w => w.id === wId);
             if(wIndex === -1) return;
@@ -1352,12 +1551,12 @@
                 withdrawalsList.splice(wIndex, 1);
                 transactions = transactions.filter(t => t.invoiceId !== wId);
                 
-                showMsg('تم حذف قائمة السحب واسترجاع المخزون بنجاح', 'success');
+                showMsg('تم إلغاء السحب واسترجاع الأرصدة بنجاح', 'success');
                 window.renderWithdrawsHistory();
                 window.renderDashboard(); 
                 window.renderCatalog();
             } catch(e) {
-                showMsg('حدث خطأ أثناء الحذف والتزامن مع السحابة', 'error');
+                showMsg('خلل أثناء محاولة الاتصال بقاعدة البيانات لتنفيذ الحذف', 'error');
                 console.error(e);
             }
         };
@@ -1375,7 +1574,7 @@
         window.addEditWithdrawDraftItem = function() {
             const id = document.getElementById('edit-withdraw-item-id').value;
             const qty = parseFloat(document.getElementById('edit-withdraw-qty').value);
-            if (!id || isNaN(qty) || qty <= 0) return;
+            if (!id || isNaN(qty) || qty <= 0) { showMsg('يرجى التحقق من المدخلات', 'error'); return; }
             const item = items.find(i => i.id === id);
             
             const existingIndex = editWithdrawDraftItems.findIndex(d => d.itemId === id);
@@ -1390,8 +1589,8 @@
 
         window.renderEditWithdrawDraftList = function() {
             const container = document.getElementById('edit-withdraw-draft-container');
-            if (editWithdrawDraftItems.length === 0) { container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 15px;">القائمة فارغة</div>'; return; }
-            container.innerHTML = editWithdrawDraftItems.map((d, index) => `<div style="display:flex; justify-content:space-between; padding:10px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; margin-bottom:8px; font-size:0.9rem;"><div><strong>${d.itemName}</strong> - ${d.qty} ${d.itemUnit}</div><div style="color:var(--danger); cursor:pointer;" onclick="removeEditWithdrawDraftItem(${index})"><i class="fas fa-trash"></i></div></div>`).join('');
+            if (editWithdrawDraftItems.length === 0) { container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px; background:#f8fafc; border-radius:10px;">القائمة فارغة من المواد</div>'; return; }
+            container.innerHTML = editWithdrawDraftItems.map((d, index) => `<div style="display:flex; justify-content:space-between; align-items:center; padding:15px; background:white; border:1px solid var(--border); border-radius:12px; margin-bottom:10px; box-shadow:var(--shadow-sm);"><div style="line-height:1.6;"><strong style="font-size:1.05rem; color:var(--text-main);">${d.itemName}</strong> <br> الكمية: <span style="font-weight:bold;">${d.qty}</span> ${d.itemUnit}</div><button class="btn" style="background:#fee2e2; color:var(--danger); padding:10px;" onclick="removeEditWithdrawDraftItem(${index})"><i class="fas fa-trash"></i></button></div>`).join('');
         };
 
         window.cancelEditWithdraw = function() { window.showScreen('withdraw-history-screen'); };
@@ -1399,7 +1598,8 @@
         window.saveEditedWithdraw = async function() {
             const id = document.getElementById('edit-withdraw-id').value;
             const newDate = document.getElementById('edit-withdraw-date').value;
-            if(!newDate) { showMsg('الرجاء تحديد التاريخ', 'error'); return; }
+            if(!newDate) { showMsg('الرجاء التأكد من تحديد تاريخ صحيح', 'error'); return; }
+            if(editWithdrawDraftItems.length === 0) { showMsg('لا يُسمح بقوائم سحب فارغة', 'error'); return; }
             const btn = document.getElementById('btn-save-withdraw-edit'); btn.disabled = true;
 
             try {
@@ -1414,9 +1614,9 @@
                 for (let newItem of editWithdrawDraftItems) {
                     const item = items.find(i => i.id === newItem.itemId);
                     if (!item || item.stock < newItem.qty) {
-                        showMsg(`عذراً، مخزون "${newItem.itemName}" غير كافٍ لإتمام التعديل!`, 'error');
+                        showMsg(`المعذرة، رصيد مادة "${newItem.itemName}" غير كافٍ لإتمام التعديل واستقطاع الزيادة!`, 'error');
                         btn.disabled = false;
-                        setTimeout(() => location.reload(), 2000);
+                        setTimeout(() => location.reload(), 3000);
                         return;
                     }
                 }
@@ -1438,9 +1638,9 @@
                 batch.update(db.collection("withdrawals").doc(id), { date: newDate, items: editWithdrawDraftItems, itemCount: editWithdrawDraftItems.length });
 
                 await batch.commit();
-                showMsg('تم تحديث قائمة السحب بنجاح', 'success');
+                showMsg('تم اعتماد وحفظ تحديث قائمة السحب بنجاح', 'success');
                 setTimeout(() => location.reload(), 1500); 
-            } catch(e) { showMsg('حدث خطأ أثناء التحديث', 'error'); console.error(e); btn.disabled = false; }
+            } catch(e) { showMsg('خطأ أثناء مزامنة التحديث', 'error'); console.error(e); btn.disabled = false; }
         };
 
         window.renderReports = function() {
@@ -1458,11 +1658,19 @@
             
             let inTotal = 0; let outTotal = 0;
             tbody.innerHTML = filtered.map(t => {
+                const isAdj = t.invoiceId === 'تسوية جردية';
+                
                 if(t.type === 'add') inTotal += t.qty; else outTotal += t.qty;
-                return `<tr><td>${t.invoiceDate}</td><td><strong>${t.itemName}</strong></td><td>${t.itemExpiry || '-'}</td><td>${t.itemUnit}</td><td><span class="badge ${t.type === 'add' ? 'badge-orange' : 'badge-red'}" style="background:${t.type === 'add' ? '#dcfce7' : '#fee2e2'}; color:${t.type === 'add' ? '#166534' : '#991b1b'}">${t.type === 'add' ? 'إدخال' : 'سحب'}</span></td><td><strong>${t.qty}</strong></td><td style="font-size:0.8rem; color:var(--text-muted);">${t.invoiceId || 'مباشر'}</td></tr>`;
+                
+                let typeBadge = '';
+                if(isAdj) typeBadge = `<span class="badge badge-orange"><i class="fas fa-balance-scale"></i> تسوية جردية</span>`;
+                else if (t.type === 'add') typeBadge = `<span class="badge badge-green"><i class="fas fa-arrow-down"></i> إدخال توريد</span>`;
+                else typeBadge = `<span class="badge badge-red"><i class="fas fa-arrow-up"></i> سحب وصرف</span>`;
+                
+                return `<tr><td style="font-weight:600;">${t.invoiceDate}</td><td><strong style="color:var(--text-main);">${t.itemName}</strong></td><td>${t.itemExpiry || '-'}</td><td>${t.itemUnit}</td><td>${typeBadge}</td><td style="font-size:1.1rem;"><strong>${t.qty}</strong></td><td style="font-size:0.85rem; color:var(--text-muted); font-family:monospace;">${t.invoiceId || 'مباشر'}</td></tr>`;
             }).join('');
             
-            if(filtered.length === 0) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">لا توجد حركات تطابق البحث</td></tr>`;
+            if(filtered.length === 0) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-muted);">لا توجد حركات تتطابق مع معاملات البحث الحالية</td></tr>`;
             
             document.getElementById('stat-in').innerText = inTotal;
             document.getElementById('stat-out').innerText = outTotal;
@@ -1470,12 +1678,12 @@
         };
         
         window.exportToExcel = function() {
-            if(currentReportData.length === 0) { showMsg('لا توجد بيانات للتصدير', 'error'); return; }
-            const dataToExport = currentReportData.map(t => ({ 'تاريخ الحركة': t.invoiceDate, 'اسم المادة': t.itemName, 'الكمية': t.qty, 'الوحدة': t.itemUnit, 'نوع الحركة': t.type === 'add' ? 'إدخال' : 'سحب', 'المرجع السحابي': t.invoiceId || 'مباشر' }));
+            if(currentReportData.length === 0) { showMsg('عذراً، الجدول خالي من البيانات للتصدير', 'error'); return; }
+            const dataToExport = currentReportData.map(t => ({ 'تاريخ الحركة': t.invoiceDate, 'اسم الصنف': t.itemName, 'الكمية المؤثرة': t.qty, 'وحدة القياس': t.itemUnit, 'نوع الحركة': t.invoiceId === 'تسوية جردية' ? 'تسوية' : (t.type === 'add' ? 'إدخال' : 'صرف'), 'رقم المستند / المرجع': t.invoiceId || 'مباشر' }));
             const ws = XLSX.utils.json_to_sheet(dataToExport);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "تقرير الحركات");
-            XLSX.writeFile(wb, "تقرير_حركة_المخزون.xlsx");
+            XLSX.utils.book_append_sheet(wb, ws, "تقرير حركات المخزون");
+            XLSX.writeFile(wb, "تقرير_حركة_المخزون_الشامل.xlsx");
         };
 
         let currentWithdrawReportData = [];
@@ -1486,7 +1694,7 @@
             const dateTo = document.getElementById('w-report-date-to').value;
             const tbody = document.getElementById('withdraw-reports-table-body');
             
-            let filtered = transactions.filter(t => t.type === 'withdraw' && t.itemName.toLowerCase().includes(nameFilter));
+            let filtered = transactions.filter(t => t.type === 'withdraw' && t.itemName.toLowerCase().includes(nameFilter) && t.invoiceId !== 'تسوية جردية');
             
             if (dateFrom) filtered = filtered.filter(t => t.invoiceDate >= dateFrom);
             if (dateTo) filtered = filtered.filter(t => t.invoiceDate <= dateTo);
@@ -1498,31 +1706,31 @@
             tbody.innerHTML = filtered.map(t => {
                 outTotal += t.qty;
                 return `<tr>
-                    <td>${t.invoiceDate}</td>
-                    <td><strong>${t.itemName}</strong></td>
+                    <td style="font-weight:600;">${t.invoiceDate}</td>
+                    <td><strong style="color:var(--text-main);">${t.itemName}</strong></td>
                     <td>${t.itemUnit}</td>
-                    <td><strong style="color:var(--danger);">${t.qty}</strong></td>
-                    <td style="font-size:0.8rem; color:var(--text-muted);">${t.invoiceId || 'مباشر'}</td>
+                    <td><strong style="color:var(--danger); font-size:1.1rem;">${t.qty}</strong></td>
+                    <td style="font-size:0.85rem; color:var(--text-muted); font-family:monospace;">${t.invoiceId || 'مباشر'}</td>
                 </tr>`;
             }).join('');
             
-            if(filtered.length === 0) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">لا توجد سحوبات تطابق بحثك الحالي</td></tr>`;
+            if(filtered.length === 0) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">لا توجد سحوبات تتطابق مع بحثك الحالي</td></tr>`;
             
             document.getElementById('w-stat-out').innerText = outTotal;
         };
         
         window.exportWithdrawsToExcel = function() {
-            if(currentWithdrawReportData.length === 0) { showMsg('لا توجد بيانات للتصدير', 'error'); return; }
+            if(currentWithdrawReportData.length === 0) { showMsg('لا توجد بيانات متاحة للتصدير حالياً', 'error'); return; }
             const dataToExport = currentWithdrawReportData.map(t => ({ 
-                'تاريخ السحب': t.invoiceDate, 
-                'اسم المادة': t.itemName, 
-                'الكمية المسحوبة': t.qty, 
-                'الوحدة': t.itemUnit, 
-                'المرجع السحابي (رقم القائمة)': t.invoiceId || 'مباشر' 
+                'تاريخ الصرف': t.invoiceDate, 
+                'اسم المادة (الصنف)': t.itemName, 
+                'إجمالي الكمية المنصرفة': t.qty, 
+                'الوحدة المعتمدة': t.itemUnit, 
+                'رقم قائمة السحب': t.invoiceId || 'مباشر' 
             }));
             const ws = XLSX.utils.json_to_sheet(dataToExport);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "تقرير السحوبات");
+            XLSX.utils.book_append_sheet(wb, ws, "تفاصيل السحوبات");
             XLSX.writeFile(wb, "تقرير_السحوبات_المفصل.xlsx");
         };
     </script>
